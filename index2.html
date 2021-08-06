@@ -1,0 +1,33 @@
+<html>
+<body>
+<iframe id="iframe" srcdoc='
+<html>
+  <head>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  </head>
+  <body>
+    Hello, <b id="world">world</b>.
+    <input />
+  </body>
+  <script>
+    $(function() {
+      $("#world")
+        .on("click", function () {
+          let self = this;
+          let content = $(this).html();
+          let input = "<input value=\""+content+"\" />";
+          $(input)
+            .blur(function () {
+              $(this).hide();
+              $(self).html($(this).val());
+              $(self).show();
+            })
+            .insertAfter($(this))
+            .focus();
+          $(this).hide();
+        })
+    });
+  </script>
+</html>'></iframe>
+</body>
+</html>

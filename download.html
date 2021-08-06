@@ -1,0 +1,48 @@
+<html>
+<head>
+    <script src="./FileSaver.js"></script>
+</head>
+<body>
+    <button onclick="useFileSaver()">Use FileVser</button><br>
+    <button onclick="useBlob()">Use Blob</button><br>
+    <button onclick="uploadOnServer()">Upload On Server</button><br>
+
+<script type="text/javascript">
+    function useFileSaver() {
+        // 1. The easiest way to save a file in client-side Javascript is to use FileSaver.
+        var myFile = new File(["CONTENT"], "demo.txt", {type: "text/plain;charset=utf-8"});
+        saveAs(myFile);
+    }
+
+    function useBlob() {
+        var myBlob = new Blob(["CONTENT"], {type: 'text/plain'});
+        var anchor = document.createElement("a");
+        anchor.download = "demo.txt";
+        anchor.href = window.URL.createObjectURL(myBlob);
+        anchor.click();
+    }
+
+    function uploadOnServer() {
+        var aFileParts = ['<a id="a"><b id="b">hey!</b></a>'];
+        var oMyBlob = new Blob(aFileParts, {type : 'text/html'}); // the blob
+        window.open(URL.createObjectURL(oMyBlob));
+        // var myBlob = new Blob(["CONTENT"], {type: 'text/plain'});
+        // var data = new FormData();
+        // data.append("upfile", myBlob);
+        // var xhr = new XMLHttpRequest();
+        // xhr.open("POST", "./download.php");
+        // xhr.send(data);
+    }
+
+    function saveToLocalStorage() {
+        var myBlob = new Blob(["CONTENT"], {type: "text/plain"});
+        localStorage.setItem("myBlob", myBlob);
+    }
+
+    function useNodeJS() {
+        var fs = require('fs');
+        fs.writeFile("DEMO.TXT", "Foo bar!");
+    }
+</script>
+</body>
+</html>

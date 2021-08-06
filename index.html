@@ -1,0 +1,29 @@
+<html>
+<head>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+  <iframe id="iframe" title="" srcdoc=''></iframe>
+  <br />
+  <input type="file" id="file" />
+  <button id="save">Save</button>
+
+<script>
+  $('#file').on('change', function() {
+    var fr = new FileReader();
+    fr.onload = function() {
+      $('#iframe').attr('srcdoc', fr.result);
+    }
+    fr.readAsText(this.files[0]);
+  });
+  $('#save').click(function () {
+    let html = $('#iframe').contents().find('html').html();
+    // console.log(html.replace(/<!--removed-->.*<!--\/removed-->/gi, ''));
+    console.log(html.replace(/<script(.*)>([\n|\t]+)?.*([\n|\t]+)?<\/script>/gi, ''));
+    // console.log(html.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, ''));
+  });
+</script>
+</body>
+</html>
+
+

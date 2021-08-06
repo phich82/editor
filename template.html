@@ -1,0 +1,33 @@
+<html>
+  <head>
+    <!-- removed -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js" ></script>
+    <!-- /removed -->
+  </head>
+  <body>
+    Hello, <b id="world">world</b>.
+    <input />
+  </body>
+  <!-- removed -->
+  <script>
+    $(function() {
+      $("#world")
+        .on("click", function () {
+          let self = this;
+          let content = $(this).html();
+          let input = '<input value="'+content+'" />';
+          $(input)
+            .blur(function () {
+              let value = $(this).val();
+              $(this).remove();
+              $(self).html(value).show();
+              $(self).show();
+            })
+            .insertAfter($(this))
+            .focus();
+          $(this).hide();
+        })
+    });
+  </script>
+  <!-- /removed -->
+  </html>
