@@ -78,7 +78,7 @@ var Editor = {
 $(function() {
   // Initiate CKEDITOR
   CKEDITOR.replace('editor', {
-    extraPlugins: 'filebrowser,imagecrop',
+    extraPlugins: 'filebrowser,imagecrop,myplugin,mywidget',
     filebrowserUploadMethod: 'form',
 
     filebrowserBrowseUrl: '/ckeditor/browser/browse.php?type=Files',

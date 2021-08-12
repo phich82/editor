@@ -69,7 +69,61 @@ CKEDITOR.dialog.add('cropDialog', function (editor) {
                                 label: editor.lang.common.image,
                                 style: 'width: 100%; height: ' + parseInt(window.innerHeight * 80 / 100) + 'px; border-color:#CECECE',
                                 setup: function(element) {
-                                    cropper.reset().replace(element.getAttribute('src'));
+                                    // cropper.reset().replace(element.getAttribute('src')); // ouput error: Cannot read property 'reset' of undefined (because cropper is undefined)
+                                    //================= FIX ABOVE ERROR =================//
+                                    function getImageFromUrl(url, callback, onlyBlodUrl) {
+                                        var img = new Image();
+                                        img.setAttribute('crossOrigin', 'anonymous');
+                                        img.onload = function (a) {
+                                            var canvas = document.createElement("canvas");
+                                            canvas.width = this.width;
+                                            canvas.height = this.height;
+                                            var context = canvas.getContext("2d");
+                                            context.drawImage(this, 0, 0);
+
+                                            var dataURI = canvas.toDataURL("image/jpg");
+
+                                            if (onlyBlodUrl === true) {
+                                                return callback(null, dataURI);
+                                            }
+
+                                            // convert base64/URLEncoded data component to raw binary data held in a string
+                                            var byteString;
+                                            if (dataURI.split(',')[0].indexOf('base64') >= 0) {
+                                                byteString = atob(dataURI.split(',')[1]);
+                                            } else {
+                                                byteString = unescape(dataURI.split(',')[1]);
+                                            }
+
+                                            // separate out the mime component
+                                            var mimeString = dataURI.split(',')[0].split(':')[1].split(';')[0];
+
+                                            // write the bytes of the string to a typed array
+                                            var ia = new Uint8Array(byteString.length);
+                                            for (var i = 0; i < byteString.length; i++) {
+                                                ia[i] = byteString.charCodeAt(i);
+                                            }
+
+                                            return callback(new Blob([ia], { type: mimeString }), dataURI);
+                                        }
+                                        img.src = url;
+                                    }
+                                    getImageFromUrl(element.getAttribute('src'), function (blobImage, blobURL) {
+                                        // If not use third argument
+                                        // uploadOnChange({target: {files: [blobImage]}});
+
+                                        // If using third argument (onlyBlobUrl = true)
+                                        if (!cropper) {
+                                            cropper = new Cropper(CKEDITOR.document.getElementsByTag('img').$[0], options);
+                                        }
+                                        var mineType = blobURL.split(',')[0].split(':')[1].split(';')[0];
+                                        if (/^image\/\w+/.test(mineType)) {
+                                            cropper.reset().replace(blobURL);
+                                        } else {
+                                            window.alert(editor.lang.imagecrop.wrongImageType);
+                                        }
+                                    }, true);
+                                    //================= END - FIX ABOVE ERROR =================//
                                 }
                             },
                             {
