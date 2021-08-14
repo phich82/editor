@@ -6,13 +6,185 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>File Management</title>
 
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.5.0/font/bootstrap-icons.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-KyZXEAg3QhqLMpG8r+8fhAXLRk2vvoC2f3B09zVXn8CA5QIVfZOJ3BCsw2P0p/We" crossorigin="anonymous">
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <!-- Option 1: Bootstrap Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.3/dist/umd/popper.min.js" integrity="sha384-eMNCOe7tC1doHpGoWe/6oMVemdAVTMs2xqW4mwXrXsW0L84Iytr2wi5v2QjrP/xp" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/js/bootstrap.min.js" integrity="sha384-cn7l7gDp0eyniUwwAZgrzD06kc/tftFf19TOAs2zVinnD/C7E91j9yyk5//jjpt/" crossorigin="anonymous"></script>
+
+    <style>
+        .w-sidebar {
+            width: 100% !important;
+        }
+
+        .border-color {
+            border-color: 1px solid #ccc !important;
+        }
+
+        .border-header {
+            border: 1px solid;
+        }
+        .border-content {
+            border: 1px solid;
+            border-top: none;
+        }
+
+        .border-top-none {
+            border-top: none !important;
+        }
+
+        .content {
+            padding: 0;
+        }
+
+        .reset-pad-col {
+            padding: 0 !important;
+        }
+
+        .folder-selected {
+            background-color: #ffffff !important;
+            border: 1px solid #2790eb !important;
+        }
+
+        .folder-color {
+            color: #2790eb
+        }
+
+    </style>
 </head>
+<?php
+    function dd($value) {
+        echo '<pre>'.json_encode($value, JSON_PRETTY_PRINT).'</pre>';
+        exit;
+    }
+
+    function createId($str) {
+        return preg_replace('#\s+#', '_', strtolower(trim($str)));
+    }
+
+    function scanDirectory($base_dir = '../uploader/storage', $level = 0) {
+        $directories = [];
+        foreach (scandir($base_dir) as $file) {
+            if ($file == '.' || $file == '..') {
+                continue;
+            }
+            $dir = $base_dir.DIRECTORY_SEPARATOR.$file;
+            if (is_dir($dir)) {
+                $directories[] = [
+                    'level'    => $level,
+                    'name'     => $file,
+                    'path'     => preg_replace('#^\.\.\/uploader\/storage#', '', $dir),
+                    'children' => scanDirectory($dir, $level +1)
+                ];
+            }
+        }
+        return $directories;
+    }
+
+    // echo '<pre>'.json_encode(scanDirectory('../uploader/storage'), JSON_PRETTY_PRINT).'</pre>';
+
+    function subfolders($directories, $collapseId = '', $levelPrev = 0) {
+        $out = "";
+        $levelCurrent = $levelPrev;
+        foreach ($directories as $directory) {
+        if ($levelCurrent != $directory['level']) {
+            $levelCurrent = $directory['level'];
+            $out .= "<div class='collapse' id='$collapseId'>";
+        }
+            $tab = $levelCurrent * 20;
+
+            $out .=    "<button class='btn border-top-0 border-secondary rounded-0 shadow-none w-sidebar' data-path='{$directory['path']}'>";
+            $out .=        "<div class='row'>";
+            $out .=            "<div class='col text-start folder' style='padding-left: {$tab}px;'>";
+            $out .=                "<i class='bi bi-folder icon-folder'></i>\n";
+            $out .=                "<span>{$directory['name']}</span>";
+            $out .=            "</div>";
+
+        if (!empty($directory['children'])) {
+            $out .=            "<div class='col-2'>";
+            $out .=                "<i class='bi bi-caret-right-fill icon-collapse' data-bs-toggle='collapse' data-bs-target='#".createId($directory['name'])."'></i>";
+            $out .=            "</div>";
+            $out .=        "</div>";
+            $out .=    "</button>";
+            $out .= subfolders($directory['children'], createId($directory['name']), $directory['level']);
+        } else {
+            $out .=        "</div>";
+            $out .=    "</button>";
+        }
+        }
+        if (!empty($directories)) {
+            $out     .= "</div>";
+        }
+        return $out;
+    }
+?>
+
 <body>
-    <?php
-        $files = array_diff(scandir('../uploader/uploads'), ['.', '..']);
-        $imagePath = 'http://'.$_SERVER['HTTP_HOST'].'/ckeditor/uploader/uploads';
-    ?>
+    <div class="container-fluid" style="background-color: #f7f8f9;">
+        <div class="header row border-header" style="padding: 10px;">
+            <div class="col-8">
+                <button class="btn btn-light bg-white border border-secondary">
+                    <i class="bi bi-upload"></i>
+                    <span>Upload</span>
+                </button>
+                <button class="btn btn-light bg-white border border-secondary">
+                    <i class="bi bi-folder-plus"></i>
+                    <span>New Subfolder</span>
+                </button>
+                <button class="btn btn-light bg-white border border-secondary">
+                    <i class="bi bi-arrows-fullscreen"></i>
+                    <span>Maximize</span>
+                </button>
+                <button class="btn btn-light bg-white border border-secondary">
+                    <i class="bi bi-fullscreen-exit"></i>
+                    <span>Minimize</span>
+                </button>
+            </div>
+            <div class="col-4">
+                <div class="row">
+                    <input type="text" name="search" id="search" placeholder="Search..." class="form-control col" />
+                    <button class="btn btn-light col-2">
+                        <i class="bi bi-gear-fill"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="content row border-content">
+            <div class="col-3 reset-pad-col sidebar">
+            <?php foreach (scanDirectory() as $directory): ?>
+                <button class="btn border-top-0 border-secondary rounded-0 shadow-none w-sidebar" data-path="<?php echo $directory['path']; ?>">
+                    <div class="row">
+                        <div class="col text-start folder">
+                            <i class="bi bi-folder icon-folder"></i>
+                            <span><?php echo $directory['name']; ?></span>
+                        </div>
+                        <?php if (!empty($directory['children'])): ?>
+                        <div class="col-2">
+                            <i class="bi bi-caret-right-fill icon-collapse"
+                               data-bs-toggle="collapse"
+                               data-bs-target="#<?php echo createId($directory['name']); ?>"
+                            ></i>
+                        </div>
+                        <?php endif; ?>
+                    </div>
+                </button><!-- /.btn -->
+                <!-- collapse -->
+                <?php
+                if (!empty($directory['children'])) {
+                    print subfolders($directory['children'], createId($directory['name']), $directory['level']);
+                }
+                ?><!-- /.collapse -->
+            <?php endforeach; ?>
+            </div><!-- /.col-3 -->
+
+            <div class="col-9 main-content" style="background-color: #ffffff;">
+
+            </div><!-- /.col-9 -->
+        </div>
+    </div>
+
     <div class="wrap-upload">
         <h2>Upload File</h2>
         <div class="wrap-file">
@@ -27,14 +199,19 @@
             </p>
         </div>
     </div>
-    <div class="wrap-image">
+
+    <!-- <x?php
+        $files = array_diff(scandir('../uploader/uploads'), ['.', '..']);
+        $imagePath = 'http://'.$_SERVER['HTTP_HOST'].'/ckeditor/uploader/uploads';
+    ?> -->
+    <!-- <div class="wrap-image">
         <h2>Available Images</h2>
         <div class="images">
-            <?php foreach ($files as $file) : ?>
-            <img class="image" src="<?php echo $imagePath.'/'.$file; ?>" height="100" width="100" alt="<?php echo $file; ?>" />
-            <?php endforeach; ?>
+            <x?php foreach ($files as $file) : ?>
+            <img class="image" src="<x?php echo $imagePath.'/'.$file; ?>" height="100" width="100" alt="<x?php echo $file; ?>" />
+            <x?php endforeach; ?>
         </div>
-    </div>
+    </div> -->
 
 <script>
     // Helper function to get parameters from the query string.
@@ -68,8 +245,40 @@
         window.close();
     }
 
+    function showImages(path) {
+        $.ajax({
+        url: '../uploader/get_files.php',
+        method: 'POST',
+        data: { path },
+        dataType: 'json',
+        success: function (response) {
+            console.log("response =>", response);
+            if (response && response.success) {
+                let out = `
+                    <div class="wrap-image">
+                        <h2>Available Images</h2>
+                        <div class="images">
+                `;
+                response.data.forEach(function (image) {
+                    let filename = image.split('/').pop().split('.').shift();
+                    out += `<img class="image" src="${image}" height="100" width="100" alt="${filename}" />`;
+                });
+                out += `
+                        </div>
+                    </div>
+                `;
+
+                $('.main-content').html(out);
+            }
+        },
+        error: function (jqXHR, textSatatus, errorThrown) {
+            console.log('error =>', jqXHR, textSatatus, errorThrown);
+        }
+    });
+    }
+
     $(function() {
-        $('.images').on('click', '.image', function() {
+        $(document).on('click', '.images .image', function() {
             returnFileUrl($(this).attr('src'));
         });
 
@@ -141,6 +350,73 @@
                     }
                 }
             });
+        });
+
+        // $('.sidebar').on('click', 'button', function () {
+        $('.sidebar').on('click', '.folder', function () {
+            let buttonThis = $(this).closest('button');
+
+            // Remove previous selected folder
+            buttonThis.closest('.sidebar').find('button').removeClass('folder-selected');
+            // Highlight current selected folder
+            buttonThis.addClass('folder-selected');
+
+            // Change another folder icons when selecting a folder
+            buttonThis.closest('.sidebar').find('button').each(function (idx, button) {
+                // If button (folder) has subfolders & in collapsed status, folder icon will be open
+                if (!$(button).hasClass('collapsed')) {
+                    $(button).find('.icon-folder').removeClass('bi-folder2-open').addClass('bi-folder');
+                }
+            });
+
+            // Change icon of folder selected
+            let hasSubfolder = !!buttonThis.find('.icon-collapse').data('bs-toggle');
+            if (!hasSubfolder) {
+                buttonThis.find('.icon-folder').removeClass('bi-folder').addClass('bi-folder2-open');
+            }
+
+            let path = buttonThis.data('path');
+            if (path) {
+                console.log('path => ', path)
+                showImages(path);
+            }
+
+
+            // // Remove previous selected folder
+            // $(this).closest('.sidebar').find('button').removeClass('folder-selected');
+            // // Highlight current selected folder
+            // $(this).addClass('folder-selected');
+
+            // // Change another folder icons when selecting a folder
+            // $(this).closest('.sidebar').find('button').each(function (idx, button) {
+            //     // If button (folder) has subfolders & in collapsed status, folder icon will be open
+            //     if (!$(button).hasClass('collapsed')) {
+            //         $(button).find('.icon-folder').removeClass('bi-folder2-open').addClass('bi-folder');
+            //     }
+            // });
+
+            // // Change icon of folder selected
+            // let hasSubfolder = !!$(this).find('.icon-collapse').data('bs-toggle');
+            // if (!hasSubfolder) {
+            //     $(this).find('.icon-folder').removeClass('bi-folder').addClass('bi-folder2-open');
+            // }
+        });
+
+        $('.sidebar').on('click', '.icon-collapse', function () {
+            let btnCollapse = $(this);
+            let button = btnCollapse.closest('button');
+            let idTargetCollapse = btnCollapse.data('bs-target');
+            let collapsed = button.hasClass('collapsed');
+            let icon = button.find('.icon-folder');
+            if (collapsed) {
+                btnCollapse.removeClass('bi-caret-down-fill').addClass('bi-caret-right-fill');
+                icon.removeClass('bi-folder2-open').addClass('bi-folder');
+                button.removeClass('collapsed');
+            } else {
+                btnCollapse.removeClass('bi-caret-right-fill').addClass('bi-caret-down-fill');
+                icon.removeClass('bi-folder').addClass('bi-folder2-open');
+                button.addClass('collapsed');
+            }
         });
     });
 </script>
