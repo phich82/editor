@@ -5,6 +5,12 @@ function responseJson($data) {
     exit;
 }
 
+function format_filesize($B, $D = 2) {
+    $S = 'KMGTPEZY';
+    $F = floor((strlen($B) - 1) / 3);
+    return sprintf("%.{$D}f", $B/pow(1024, $F)).' '.@$S[$F-1].'B';
+}
+
 if (isset($_POST['path'])) {
     $pathRequest = trim($_POST['path'], '/');
     $path = './storage'.DIRECTORY_SEPARATOR.$pathRequest;
@@ -35,9 +41,29 @@ if (isset($_POST['path'])) {
         '.sonarlint',
     ];
     // Only get files in folder (not included files in subfolders)
-    $files = array_reduce($files, function ($carry, $file) use ($filesExcluded, $path) {
+    $files = array_reduce($files, function ($carry, $file) use ($filesExcluded, $path, $pathRequest) {
         if (!in_array($file, $filesExcluded) && is_file("{$path}/{$file}")) {
-            $carry[] = 'http://'.$_SERVER['HTTP_HOST'].'/ckeditor/uploader/'.trim("{$path}/{$file}", './');
+            $stat = stat("{$path}/{$file}");
+            $info = pathinfo("{$path}/{$file}");
+            $mime = finfo_file(finfo_open(FILEINFO_MIME_TYPE), "{$path}/{$file}");
+
+            if (preg_match("#^image\/.*#", $mime)) {
+                $src = 'http://'.$_SERVER['HTTP_HOST'].'/ckeditor/uploader/'.trim("{$path}/{$file}", './');
+            } else {
+                $src = 'http://'.$_SERVER['HTTP_HOST'].'/ckeditor/uploader/images/'."{$info['extension']}.png";
+            }
+            $carry[] = [
+                'src'       => $src,
+                'folder'    => $pathRequest,
+                'size'      => format_filesize($stat['size']),
+                'accessed'  => date('Y-m-d H:i:s', $stat['atime']),
+                'modified'  => date('Y-m-d H:i:s', $stat['mtime']),
+                'created'   => date('Y-m-d H:i:s', $stat['ctime']),
+                'filename'  => $info['filename'],
+                'basename'  => $info['basename'],
+                'extension' => $info['extension'],
+                'mime'      => $mime,
+            ];
         }
         return $carry;
     }, []);

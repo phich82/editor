@@ -8,50 +8,13 @@
 
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.5.0/font/bootstrap-icons.css">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-KyZXEAg3QhqLMpG8r+8fhAXLRk2vvoC2f3B09zVXn8CA5QIVfZOJ3BCsw2P0p/We" crossorigin="anonymous">
+    <link href="./css/style.css" rel="stylesheet">
+    <link href="./css/context-menu.css" rel="stylesheet">
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <!-- Option 1: Bootstrap Bundle with Popper -->
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.3/dist/umd/popper.min.js" integrity="sha384-eMNCOe7tC1doHpGoWe/6oMVemdAVTMs2xqW4mwXrXsW0L84Iytr2wi5v2QjrP/xp" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/js/bootstrap.min.js" integrity="sha384-cn7l7gDp0eyniUwwAZgrzD06kc/tftFf19TOAs2zVinnD/C7E91j9yyk5//jjpt/" crossorigin="anonymous"></script>
-
-    <style>
-        .w-sidebar {
-            width: 100% !important;
-        }
-
-        .border-color {
-            border-color: 1px solid #ccc !important;
-        }
-
-        .border-header {
-            border: 1px solid;
-        }
-        .border-content {
-            border: 1px solid;
-            border-top: none;
-        }
-
-        .border-top-none {
-            border-top: none !important;
-        }
-
-        .content {
-            padding: 0;
-        }
-
-        .reset-pad-col {
-            padding: 0 !important;
-        }
-
-        .folder-selected {
-            background-color: #ffffff !important;
-            border: 1px solid #2790eb !important;
-        }
-
-        .folder-color {
-            color: #2790eb
-        }
-
-    </style>
+    <script src="./js/contextmenu.js"></script>
 </head>
 <?php
     function dd($value) {
@@ -149,12 +112,13 @@
                     </button>
                 </div>
             </div>
-        </div>
+        </div><!-- /.header -->
 
         <div class="content row border-content">
             <div class="col-3 reset-pad-col sidebar">
             <?php foreach (scanDirectory() as $directory): ?>
-                <button class="btn border-top-0 border-secondary rounded-0 shadow-none w-sidebar" data-path="<?php echo $directory['path']; ?>">
+                <button class="btn border-top-0 border-secondary rounded-0 shadow-none w-sidebar<?php echo $directory['path'] == '/Images' ? ' folder-selected' : ''; ?>"
+                        data-path="<?php echo $directory['path']; ?>">
                     <div class="row">
                         <div class="col text-start folder">
                             <i class="bi bi-folder icon-folder"></i>
@@ -177,13 +141,35 @@
                 }
                 ?><!-- /.collapse -->
             <?php endforeach; ?>
-            </div><!-- /.col-3 -->
+            </div><!-- /.sidebar -->
 
-            <div class="col-9 main-content" style="background-color: #ffffff;">
-
-            </div><!-- /.col-9 -->
-        </div>
+            <div class="col-9 main-content"></div><!-- /.main-content -->
+        </div><!-- /.content -->
     </div>
+
+    <!-- Context Menu -->
+    <nav id="context-menu" class="context-menu">
+        <ul class="context-menu__items">
+            <li class="context-menu__item">
+                <a href="#" class="context-menu__link" data-action="Apply"><i class="bi bi-check-lg"></i> Apply</a>
+            </li>
+            <li class="context-menu__item">
+                <a href="#" class="context-menu__link" data-action="View"><i class="bi bi-eye"></i> View</a>
+            </li>
+            <li class="context-menu__item">
+                <a href="#" class="context-menu__link" data-action="Download"><i class="bi bi-download"></i> Download</a>
+            </li>
+            <li class="context-menu__item">
+                <a href="#" class="context-menu__link" data-action="Edit"><i class="bi bi-pencil"></i> Edit</a>
+            </li>
+            <li class="context-menu__item">
+                <a href="#" class="context-menu__link" data-action="Rename"><i class="bi bi-file-earmark-ruled"></i> Rename</a>
+            </li>
+            <li class="context-menu__item">
+                <a href="#" class="context-menu__link" data-action="Delete"><i class="bi bi-trash"></i> Delete</a>
+            </li>
+        </ul>
+    </nav><!-- /Context Menu -->
 
     <div class="wrap-upload">
         <h2>Upload File</h2>
@@ -254,19 +240,27 @@
         success: function (response) {
             console.log("response =>", response);
             if (response && response.success) {
-                let out = `
-                    <div class="wrap-image">
-                        <h2>Available Images</h2>
-                        <div class="images">
-                `;
-                response.data.forEach(function (image) {
-                    let filename = image.split('/').pop().split('.').shift();
-                    out += `<img class="image" src="${image}" height="100" width="100" alt="${filename}" />`;
+                let out = '<div class="images">';
+                let count = 1;
+                response.data.forEach(function (info, idx) {
+                    if (count === 1) {
+                        out += '<div class="row row-image">';
+                    }
+                    out += '<div class="col-3 block-image">';
+                    out +=      `<div class="wrap-image task" data-mime="${info.mime}" data-path="${info.folder}/${info.basename}">`;
+                    out +=          `<img class="image" src="${info.src}" height="100" width="100%" alt="${info.filename}" />`;
+                    out +=          `<div class="fname">${info.basename}</div>`;
+                    out +=          `<div class="fmodified">${info.modified}</div>`;
+                    out +=          `<div class="fsize">${info.size}</div>`;
+                    out +=      '</div>';
+                    out += '</div>';
+                    if (count === 4) {
+                        count = 0;
+                        out += '</div>';
+                    }
+                    count++;
                 });
-                out += `
-                        </div>
-                    </div>
-                `;
+                out += '</div>';
 
                 $('.main-content').html(out);
             }
@@ -278,8 +272,10 @@
     }
 
     $(function() {
-        $(document).on('click', '.images .image', function() {
-            returnFileUrl($(this).attr('src'));
+        $(document).on('click', '.images .wrap-image', function() {
+            //returnFileUrl($(this).attr('src'));
+            $(this).closest('.images').find('.wrap-image').removeClass('image-selected');
+            $(this).addClass('image-selected');
         });
 
         $('#file').on('change', function() {
@@ -418,6 +414,11 @@
                 button.addClass('collapsed');
             }
         });
+
+        // Automatically loading images when on reload page
+        if ($('.sidebar').find('.folder-selected').hasClass('folder-selected')) {
+            $('.sidebar').find('.folder-selected .folder').click();
+        }
     });
 </script>
 </body>
