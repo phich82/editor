@@ -117,7 +117,7 @@
         <div class="content row border-content">
             <div class="col-3 reset-pad-col sidebar">
             <?php foreach (scanDirectory() as $directory): ?>
-                <button class="btn border-top-0 border-secondary rounded-0 shadow-none w-sidebar<?php echo $directory['path'] == '/Images' ? ' folder-selected' : ''; ?>"
+                <button class="btn border-top-0 border-secondary rounded-0 shadow-none w-sidebar<?php echo trim($directory['path'], '/\\') == 'Images' ? ' folder-selected' : ''; ?>"
                         data-path="<?php echo $directory['path']; ?>">
                     <div class="row">
                         <div class="col text-start folder">
@@ -419,6 +419,9 @@
         if ($('.sidebar').find('.folder-selected').hasClass('folder-selected')) {
             $('.sidebar').find('.folder-selected .folder').click();
         }
+
+        // window.opener.CKEDITOR.instances.editor.openDialog('mypluginDialog');
+        // CKEDITOR.instances.editor.commands.insertMyPlugin.exec();
     });
 </script>
 </body>
