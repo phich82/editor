@@ -87,10 +87,12 @@
     <div class="container-fluid" style="background-color: #f7f8f9;">
         <div class="header row border-header" style="padding: 10px;">
             <div class="col-8">
-                <button class="btn btn-light bg-white border border-secondary">
+                <button class="btn btn-light bg-white border border-secondary upload">
                     <i class="bi bi-upload"></i>
                     <span>Upload</span>
                 </button>
+                <!-- Hide input file -->
+                <input type="file" name="uploadfile" id="uploadfile" style="display: none;" />
                 <button class="btn btn-light bg-white border border-secondary">
                     <i class="bi bi-folder-plus"></i>
                     <span>New Subfolder</span>
@@ -150,23 +152,47 @@
 <!-- Modal -->
 <div class="modal fade" id="modal" tabindex="-1" role="dialog" aria-labelledby="modalLabel" aria-hidden="true">
     <div class="modal-dialog" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="modalLabel">Preview Iamge</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+        <div class="modal-content rounded-0">
+            <div class="modal-header p-1">
+                <h5 class="modal-title" id="modalLabel">Preview Image</h5>
+                <button type="button" class="border-0 bg-transparent close" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
             <div class="modal-body">
-                <form>
-                    <div class="form-group">
-                        <img alt="Preview Image" height="200" width="200" />
+                <div class="form-group">
+                    <div class="row">
+                        <div class="col-5">
+                            <img alt="Preview Image" height="200" width="200" />
+                        </div>
+                        <div class="col-7">
+                            <div class="fileinfo" style="color: grey;">
+                                <div class="filename">
+                                    <label >File Name:</label>
+                                    <span></span>
+                                </div>
+                                <div class="filetype">
+                                    <label style="color: grey;">Type:</label>
+                                    <span></span>
+                                </div>
+                                <div class="filesize">
+                                    <label style="color: grey;">Size:</label>
+                                    <span></span>
+                                </div>
+                            </div>
+                            <!-- Show error message -->
+                            <div class="uploaderror" style="display: none; color: red; padding-top: 40px;"></div>
+                        </div>
                     </div>
-                </form>
+                </div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary close" data-dismiss="modal">Close</button>
-                <button type="button" class="btn btn-primary">Save</button>
+            <div class="modal-footer p-1">
+                <div class="cancelok">
+                    <button type="button" class="btn btn-primary btn-sm pt-0 pb-0 border-secondary rounded-0 ok modal-save">Save</button>
+                    <button type="button" class="btn btn-secondary btn-sm pt-0 pb-0 border-secondary rounded-0 close" data-dismiss="modal">Cancel</button>
+                </div>
+                <!-- Show processing status -->
+                <div class="loader" style="display: none;"></div>
             </div>
         </div>
     </div>
@@ -195,34 +221,6 @@
             </li>
         </ul>
     </nav><!-- /Context Menu -->
-
-    <div class="wrap-upload">
-        <h2>Upload File</h2>
-        <div class="wrap-file">
-            <p>
-                <input type="file" name="file" id="file" />
-            </p>
-            <p class="wrap-preview" style="display: none;">
-                <img alt="Preview Image" height="200" width="200" />
-            </p>
-            <p class="wrap-save" style="display: none;">
-                <button class="save">Save</button>
-            </p>
-        </div>
-    </div>
-
-    <!-- <x?php
-        $files = array_diff(scandir('../uploader/uploads'), ['.', '..']);
-        $imagePath = 'http://'.$_SERVER['HTTP_HOST'].'/ckeditor/uploader/uploads';
-    ?> -->
-    <!-- <div class="wrap-image">
-        <h2>Available Images</h2>
-        <div class="images">
-            <x?php foreach ($files as $file) : ?>
-            <img class="image" src="<x?php echo $imagePath.'/'.$file; ?>" height="100" width="100" alt="<x?php echo $file; ?>" />
-            <x?php endforeach; ?>
-        </div>
-    </div> -->
 
 <script>
     // Helper function to get parameters from the query string.
@@ -256,50 +254,100 @@
         window.close();
     }
 
+    // Convert base64 to blob data
+    function base64ToBlob(base64, mime) {
+        base64 = base64.replace(/^data:image\/(.*);base64,/, '');
+        mime = mime || '';
+
+        var sliceSize = 1024;
+        var byteChars = window.atob(base64);
+        var byteArrays = [];
+
+        for (var offset = 0, len = byteChars.length; offset < len; offset += sliceSize) {
+            var slice = byteChars.slice(offset, offset + sliceSize);
+
+            var byteNumbers = new Array(slice.length);
+            for (var i = 0; i < slice.length; i++) {
+                byteNumbers[i] = slice.charCodeAt(i);
+            }
+
+            var byteArray = new Uint8Array(byteNumbers);
+
+            byteArrays.push(byteArray);
+        }
+
+        return new Blob(byteArrays, {type: mime});
+    }
+
+    // Format filesize
+    function format_filesize(size, decimals) {
+        decimals = decimals || 2;
+        var i = Math.floor(Math.log(size) / Math.log(1024));
+        return (size / Math.pow(1024, i)).toFixed(decimals) * 1 + ' ' + ['B', 'KB', 'MB', 'GB', 'TB'][i];
+    };
+
     function showImages(path) {
         $.ajax({
-        url: '../uploader/get_files.php',
-        method: 'POST',
-        data: { path },
-        dataType: 'json',
-        success: function (response) {
-            console.log("response =>", response);
-            if (response && response.success) {
-                let out = '<div class="images">';
-                let count = 1;
-                response.data.forEach(function (info, idx) {
-                    if (count === 1) {
-                        out += '<div class="row row-image">';
-                    }
-                    out += '<div class="col-3 block-image">';
-                    out +=      `<div class="wrap-image task" data-mime="${info.mime}" data-path="${info.folder}/${info.basename}">`;
-                    out +=          `<img class="image" src="${info.src}" height="100" width="100%" alt="${info.filename}" />`;
-                    out +=          `<div class="fname">${info.basename}</div>`;
-                    out +=          `<div class="fmodified">${info.modified}</div>`;
-                    out +=          `<div class="fsize">${info.size}</div>`;
-                    out +=      '</div>';
-                    out += '</div>';
-                    if (count === 4) {
-                        count = 0;
+            url: '../uploader/get_files.php',
+            method: 'POST',
+            data: { path },
+            dataType: 'json',
+            success: function (response) {
+                console.log("response =>", response);
+                if (response && response.success) {
+                    let out = '<div class="images">';
+                    let count = 1;
+                    response.data.forEach(function (info, idx) {
+                        if (count === 1) {
+                            out += '<div class="row row-image">';
+                        }
+                        out += '<div class="col-3 block-image">';
+                        out +=      `<div class="wrap-image task" data-mime="${info.mime}" data-path="${info.folder}/${info.basename}">`;
+                        out +=          `<img class="image" src="${info.src}" height="100" width="100%" alt="${info.filename}" />`;
+                        out +=          `<div class="fname">${info.basename}</div>`;
+                        out +=          `<div class="fmodified">${info.modified}</div>`;
+                        out +=          `<div class="fsize">${info.size}</div>`;
+                        out +=      '</div>';
                         out += '</div>';
-                    }
-                    count++;
-                });
-                out += '</div>';
+                        if (count === 4) {
+                            count = 0;
+                            out += '</div>';
+                        }
+                        count++;
+                    });
+                    out += '</div>';
 
-                $('.main-content').html(out);
+                    $('.main-content').html(out);
+                }
+            },
+            error: function (jqXHR, textSatatus, errorThrown) {
+                console.log('error =>', jqXHR, textSatatus, errorThrown);
             }
-        },
-        error: function (jqXHR, textSatatus, errorThrown) {
-            console.log('error =>', jqXHR, textSatatus, errorThrown);
-        }
-    });
+        });
     }
 
     $(function() {
+        // Reset input file after modal closed
+        $('.modal').on('hide.bs.modal', function (e) {
+            // Reset input file
+            $('#uploadfile').val('');
+            // Hide loader, error message if has
+            $('.modal .cancelok').show();
+            $('.modal .uploaderror').hide();
+            $('.modal .loader').hide();
+        });
+
+        // Hide modal when click on close button
         $('.modal').on('click', '.close', function () {
             $('.modal').modal('hide');
         })
+
+        // Upload file
+        $(document).on('click', '.upload', function () {
+            // Open dialog for choosing upload file
+            $('#uploadfile').click();
+        });
+
         // Click on each image
         $(document).on('click', '.images .wrap-image', function() {
             //returnFileUrl($(this).attr('src'));
@@ -307,70 +355,94 @@
             $(this).addClass('image-selected');
         });
 
-        $('#file').on('change', function() {
+        $('#uploadfile').on('change', function() {
             var file = this.files[0];
             let filename = file.name;
             let extension = filename.split('.').pop().toLowerCase();
+            let mime = file.type;
+            let MAX_SIZE = 1; // MB
+            let filesize = file.size / 1024 / 1024; // Bytes to MB
 
             if (['gif', 'jpg', 'jpeg', 'png'].indexOf(extension) == -1) {
-                alert('Only support image formats: jpg, jpeg, gif, png');
+                alert('Only support the image formats: jpg, jpeg, gif, png');
+                return;
+            }
+
+            if (filesize > MAX_SIZE) {
+                alert('Maximum image size is not over 5 MB.');
                 return;
             }
 
             var fr = new FileReader();
 
             fr.onload = function() {
-                $('.modal').find('img').attr('src', fr.result);
+                // Show image on preview modal
+                let imageElement = $('.modal').find('img');
+                imageElement.attr('src', fr.result);
+                imageElement.attr('data-filename', filename);
+                imageElement.attr('data-mime', mime);
+
+                // Update image information on preview modal
+                let modalBodyElement = $('.modal .modal-body');
+                modalBodyElement.find('.filename span').html(filename);
+                modalBodyElement.find('.filetype span').html(mime);
+                modalBodyElement.find('.filesize span').html(format_filesize(file.size));
+
+                // Show image preview modal
                 $('.modal').modal('toggle');
             }
             fr.readAsDataURL(file);
         });
 
-        $('.save').on('click', function(e) {
+        // Save upload file on server
+        $('.modal-save').on('click', function(e) {
             e.stopPropagation();
             e.preventDefault();
 
-            let file = $('#file').prop('files')[0];
-            let filename = file.name;
-            let extension = filename.split('.').pop().toLowerCase();
+            $('.modal .cancelok').hide();
+            $('.modal .loader').show();
 
-            if (['gif', 'jpp', 'jpeg', 'png'].indexOf(extension) == -1) {
-                alert('Only support image formats: jpg, jpeg, gif, png');
-                return;
+            let folderSelected = '';
+            let folderElementSelected = $('.sidebar').find('.folder-selected');
+
+            if (folderElementSelected.hasClass('folder-selected')) {
+                folderSelected = folderElementSelected.data('path');
             }
 
+            let imageElement = $('.modal').find('img');
+            let filename = imageElement.data('filename');
+            let mime = imageElement.data('mime');
+            let blob = base64ToBlob(imageElement.attr('src'));
+
             let dataForm = new FormData();
-            dataForm.append('file', file);
+            dataForm.append('file', blob, filename);
+            dataForm.append('folder', folderSelected);
 
             $.ajax({
                 url: '../uploader/do_upload.php',
                 method: 'POST',
                 data: dataForm,
+                dataType: 'json',
                 contentType: false,
                 cache: false,
                 processData: false,
-                beforeSend:  function() {
-                    // Show waiting for uploading
-                    $('.wrap-file').hide();
-                    $('.wrap-upload').append('<p class="loading" style="color: green; font-style: italic;">Uploading...</p>');
-                },
-                success: function(data, status, jqXHR) {
-                    alert(data, status);
-                    $('.wrap-upload').find('.loading').remove();
-                    if (data) { //SUCCESS
-                        // Reset form
-                        $('.wrap-file').find('input[type=file]').val('');
-                        $('.wrap-file').find('img').attr('src', '');
-                        $('.wrap-file').find('.wrap-preview').hide();
-                        $('.wrap-file').find('.wrap-save').hide();
-                        $('.wrap-file').show();
-
-                        let filename = data.split('/').pop().split('.').shift();
-                        // Append new image to available images area
-                        $('.images').append('<img class="image" src="'+data+'" height="100" width="100" alt="'+filename+'" />');
-                    } else { // FAILED
-                        $('.wrap-file').show();
+                success: function(response, status, jqXHR) {
+                    console.log('response => ', response)
+                    if (response && response.success) {
+                        $('.modal').modal('hide');
+                        // Reload images at folder selected
+                        folderElementSelected.find('.folder').click();
+                        // Reset form: will be automatically called after modal hidden
+                    } else {
+                        $('.modal .cancelok').show();
+                        $('.modal .uploaderror').html(response.error);
                     }
+                    $('.modal .loader').hide();
+                },
+                error: function (jqXHR, textStatus, errorThrown) {
+                    console.log('error =>', jqXHR, textSatatus, errorThrown);
+                    $('.modal .cancelok').show();
+                    $('.modal .uploaderror').html(jqXHR.responseText);
                 }
             });
         });
