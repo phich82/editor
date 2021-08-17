@@ -93,7 +93,7 @@
                 </button>
                 <!-- Hide input file -->
                 <input type="file" name="uploadfile" id="uploadfile" style="display: none;" />
-                <button class="btn btn-light bg-white border border-secondary">
+                <button class="btn btn-light bg-white border border-secondary subfolder">
                     <i class="bi bi-folder-plus"></i>
                     <span>New Subfolder</span>
                 </button>
@@ -149,54 +149,54 @@
         </div><!-- /.content -->
     </div>
 
-<!-- Modal -->
-<div class="modal fade" id="modal" tabindex="-1" role="dialog" aria-labelledby="modalLabel" aria-hidden="true">
-    <div class="modal-dialog" role="document">
-        <div class="modal-content rounded-0">
-            <div class="modal-header p-1">
-                <h5 class="modal-title" id="modalLabel">Preview Image</h5>
-                <button type="button" class="border-0 bg-transparent close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <div class="modal-body">
-                <div class="form-group">
-                    <div class="row">
-                        <div class="col-5">
-                            <img alt="Preview Image" height="200" width="200" />
-                        </div>
-                        <div class="col-7">
-                            <div class="fileinfo" style="color: grey;">
-                                <div class="filename">
-                                    <label >File Name:</label>
-                                    <span></span>
-                                </div>
-                                <div class="filetype">
-                                    <label style="color: grey;">Type:</label>
-                                    <span></span>
-                                </div>
-                                <div class="filesize">
-                                    <label style="color: grey;">Size:</label>
-                                    <span></span>
-                                </div>
+    <!-- Modal -->
+    <div class="modal fade" id="modal" tabindex="-1" role="dialog" aria-labelledby="modalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content rounded-0">
+                <div class="modal-header p-1">
+                    <h5 class="modal-title" id="modalLabel">Preview Image</h5>
+                    <button type="button" class="border-0 bg-transparent close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <div class="row">
+                            <div class="col-5">
+                                <img alt="Preview Image" height="200" width="200" />
                             </div>
-                            <!-- Show error message -->
-                            <div class="uploaderror" style="display: none; color: red; padding-top: 40px;"></div>
+                            <div class="col-7">
+                                <div class="fileinfo" style="color: grey;">
+                                    <div class="filename">
+                                        <label >File Name:</label>
+                                        <span></span>
+                                    </div>
+                                    <div class="filetype">
+                                        <label style="color: grey;">Type:</label>
+                                        <span></span>
+                                    </div>
+                                    <div class="filesize">
+                                        <label style="color: grey;">Size:</label>
+                                        <span></span>
+                                    </div>
+                                </div>
+                                <!-- Show error message -->
+                                <div class="uploaderror" style="display: none; color: red; padding-top: 40px;"></div>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
-            <div class="modal-footer p-1">
-                <div class="cancelok">
-                    <button type="button" class="btn btn-primary btn-sm pt-0 pb-0 border-secondary rounded-0 ok modal-save">Save</button>
-                    <button type="button" class="btn btn-secondary btn-sm pt-0 pb-0 border-secondary rounded-0 close" data-dismiss="modal">Cancel</button>
+                <div class="modal-footer p-1">
+                    <div class="cancelok">
+                        <button type="button" class="btn btn-primary btn-sm pt-0 pb-0 border-secondary rounded-0 ok modal-save">Save</button>
+                        <button type="button" class="btn btn-secondary btn-sm pt-0 pb-0 border-secondary rounded-0 close" data-dismiss="modal">Cancel</button>
+                    </div>
+                    <!-- Show processing status -->
+                    <div class="loader" style="display: none;"></div>
                 </div>
-                <!-- Show processing status -->
-                <div class="loader" style="display: none;"></div>
             </div>
         </div>
-    </div>
-</div><!-- /.Modal -->
+    </div><!-- /.Modal -->
 
     <!-- Context Menu -->
     <nav id="context-menu" class="context-menu">
@@ -221,6 +221,35 @@
             </li>
         </ul>
     </nav><!-- /Context Menu -->
+
+
+
+<div class="modal-subfolder fade show" id="modal" tabindex="-1" role="dialog" aria-labelledby="modalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content rounded-0">
+            <div class="modal-header p-1">
+                <h5 class="modal-title" id="modalLabel">New Name</h5>
+                <button type="button" class="border-0 bg-transparent close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="folder">Type the new folder name:</label>
+                    <input type="text" class="form-control" name="folder" id="folder" aria-describedby="folderHelp" placeholder="Your folder name">
+                </div>
+            </div>
+            <div class="modal-footer p-1">
+                <div class="cancelok">
+                    <button type="button" class="btn btn-primary btn-sm pt-0 pb-0 border-secondary rounded-0 ok modal-save">Save</button>
+                    <button type="button" class="btn btn-secondary btn-sm pt-0 pb-0 border-secondary rounded-0 close" data-dismiss="modal">Cancel</button>
+                </div>
+                <!-- Show processing status -->
+                <div class="loader" style="display: none;"></div>
+            </div>
+        </div>
+    </div>
+</div><!-- /.Modal -->
 
 <script>
     // Helper function to get parameters from the query string.
@@ -347,6 +376,12 @@
             // Open dialog for choosing upload file
             $('#uploadfile').click();
         });
+
+        // Subfolder
+        $(document).on('click', '.subfolder', function () {
+            $('body').append('<div class="wrap-modal-subfolder"></div>');
+            $('body').find('.wrap-modal-subfolder').load('./modals/subfolder.html');
+        })
 
         // Click on each image
         $(document).on('click', '.images .wrap-image', function() {
