@@ -147,6 +147,31 @@
         </div><!-- /.content -->
     </div>
 
+<!-- Modal -->
+<div class="modal fade" id="modal" tabindex="-1" role="dialog" aria-labelledby="modalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalLabel">Preview Iamge</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form>
+                    <div class="form-group">
+                        <img alt="Preview Image" height="200" width="200" />
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary close" data-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary">Save</button>
+            </div>
+        </div>
+    </div>
+</div><!-- /.Modal -->
+
     <!-- Context Menu -->
     <nav id="context-menu" class="context-menu">
         <ul class="context-menu__items">
@@ -272,6 +297,10 @@
     }
 
     $(function() {
+        $('.modal').on('click', '.close', function () {
+            $('.modal').modal('hide');
+        })
+        // Click on each image
         $(document).on('click', '.images .wrap-image', function() {
             //returnFileUrl($(this).attr('src'));
             $(this).closest('.images').find('.wrap-image').removeClass('image-selected');
@@ -283,7 +312,7 @@
             let filename = file.name;
             let extension = filename.split('.').pop().toLowerCase();
 
-            if (['gif', 'jpp', 'jpeg', 'png'].indexOf(extension) == -1) {
+            if (['gif', 'jpg', 'jpeg', 'png'].indexOf(extension) == -1) {
                 alert('Only support image formats: jpg, jpeg, gif, png');
                 return;
             }
@@ -291,10 +320,8 @@
             var fr = new FileReader();
 
             fr.onload = function() {
-                let preview = $('.wrap-preview');
-                preview.find('img').attr('src', fr.result);
-                preview.show();
-                $('.wrap-save').show();
+                $('.modal').find('img').attr('src', fr.result);
+                $('.modal').modal('toggle');
             }
             fr.readAsDataURL(file);
         });
