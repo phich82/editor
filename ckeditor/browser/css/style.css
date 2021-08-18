@@ -1,3 +1,7 @@
+.wrapper .header button span {
+    font-size: 14px;
+    font-family: Arial,Helvetica,Tahoma,Verdana,Sans-Serif;
+}
 .w-sidebar {
     width: 100% !important;
 }

@@ -84,7 +84,7 @@
 ?>
 
 <body>
-    <div class="container-fluid" style="background-color: #f7f8f9;">
+    <div class="container-fluid wrapper" style="background-color: #f7f8f9;">
         <div class="header row border-header" style="padding: 10px;">
             <div class="col-8">
                 <button class="btn btn-light bg-white border border-secondary upload">
