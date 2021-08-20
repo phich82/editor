@@ -14,43 +14,19 @@
     <!-- Option 1: Bootstrap Bundle with Popper -->
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.3/dist/umd/popper.min.js" integrity="sha384-eMNCOe7tC1doHpGoWe/6oMVemdAVTMs2xqW4mwXrXsW0L84Iytr2wi5v2QjrP/xp" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/js/bootstrap.min.js" integrity="sha384-cn7l7gDp0eyniUwwAZgrzD06kc/tftFf19TOAs2zVinnD/C7E91j9yyk5//jjpt/" crossorigin="anonymous"></script>
+    <script src="./js/globals.js"></script>
     <script src="./js/contextmenu.js"></script>
 </head>
+
 <?php
-    function dd($value) {
-        echo '<pre>'.json_encode($value, JSON_PRETTY_PRINT).'</pre>';
-        exit;
-    }
+include_once '../uploader/functions.php';
 
-    function createId($str) {
-        return preg_replace('#\s+#', '_', strtolower(trim($str)));
-    }
+// echo '<pre>'.json_encode(scanDirectory('../uploader/storage'), JSON_PRETTY_PRINT).'</pre>';
 
-    function scanDirectory($base_dir = '../uploader/storage', $level = 0) {
-        $directories = [];
-        foreach (scandir($base_dir) as $file) {
-            if ($file == '.' || $file == '..') {
-                continue;
-            }
-            $dir = $base_dir.DIRECTORY_SEPARATOR.$file;
-            if (is_dir($dir)) {
-                $directories[] = [
-                    'level'    => $level,
-                    'name'     => $file,
-                    'path'     => preg_replace('#^\.\.\/uploader\/storage#', '', $dir),
-                    'children' => scanDirectory($dir, $level +1)
-                ];
-            }
-        }
-        return $directories;
-    }
-
-    // echo '<pre>'.json_encode(scanDirectory('../uploader/storage'), JSON_PRETTY_PRINT).'</pre>';
-
-    function subfolders($directories, $collapseId = '', $levelPrev = 0) {
-        $out = "";
-        $levelCurrent = $levelPrev;
-        foreach ($directories as $directory) {
+function subfolders($directories, $collapseId = '', $levelPrev = 0) {
+    $out = "";
+    $levelCurrent = $levelPrev;
+    foreach ($directories as $directory) {
         if ($levelCurrent != $directory['level']) {
             $levelCurrent = $directory['level'];
             $out .= "<div class='collapse' id='$collapseId'>";
@@ -75,12 +51,12 @@
             $out .=        "</div>";
             $out .=    "</button>";
         }
-        }
-        if (!empty($directories)) {
-            $out     .= "</div>";
-        }
-        return $out;
     }
+    if (!empty($directories)) {
+        $out     .= "</div>";
+    }
+    return $out;
+}
 ?>
 
 <body>
@@ -252,69 +228,6 @@
 </div><!-- /.Modal -->
 
 <script>
-    // Helper function to get parameters from the query string.
-    function getUrlParam( paramName ) {
-        var reParam = new RegExp('(?:[\?&]|&)' + paramName + '=([^&]+)', 'i');
-        var match = window.location.search.match(reParam);
-
-        return (match && match.length > 1) ? match[1] : null;
-    }
-
-    // Simulate user action of selecting a file to be returned to CKEditor.
-    function returnFileUrl(fileUrl) {
-        window.opener.CKEDITOR.tools.callFunction(getUrlParam('CKEditorFuncNum'), fileUrl, function() {
-            // Get the reference to a dialog window.
-            var dialog = this.getDialog();
-            // Check if this is the Image Properties dialog window.
-            if (dialog.getName() == 'image' ) {
-                // Get the reference to a text field that stores the "alt" attribute.
-                var element = dialog.getContentElement('info', 'txtAlt');
-                // Assign the new value.
-                if (element) {
-                    // Get image name and assign it to alt attribute of img tag
-                    let filename = fileUrl.split('/').pop().split('.').shift();
-                    element.setValue(filename);
-                }
-            }
-            // Return "false" to stop further execution. In such case CKEditor will ignore the second argument ("fileUrl")
-            // and the "onSelect" function assigned to the button that called the file manager (if defined).
-            // return false;
-        });
-        window.close();
-    }
-
-    // Convert base64 to blob data
-    function base64ToBlob(base64, mime) {
-        base64 = base64.replace(/^data:image\/(.*);base64,/, '');
-        mime = mime || '';
-
-        var sliceSize = 1024;
-        var byteChars = window.atob(base64);
-        var byteArrays = [];
-
-        for (var offset = 0, len = byteChars.length; offset < len; offset += sliceSize) {
-            var slice = byteChars.slice(offset, offset + sliceSize);
-
-            var byteNumbers = new Array(slice.length);
-            for (var i = 0; i < slice.length; i++) {
-                byteNumbers[i] = slice.charCodeAt(i);
-            }
-
-            var byteArray = new Uint8Array(byteNumbers);
-
-            byteArrays.push(byteArray);
-        }
-
-        return new Blob(byteArrays, {type: mime});
-    }
-
-    // Format filesize
-    function format_filesize(size, decimals) {
-        decimals = decimals || 2;
-        var i = Math.floor(Math.log(size) / Math.log(1024));
-        return (size / Math.pow(1024, i)).toFixed(decimals) * 1 + ' ' + ['B', 'KB', 'MB', 'GB', 'TB'][i];
-    };
-
     function showImages(path) {
         $.ajax({
             url: '../uploader/get_files.php',

@@ -1,4 +1,5 @@
 <?php
+include_once './functions.php';
 
 if ($_FILES['file']['name'] != '') {
     $filename = explode('.', $_FILES['file']['name']);
@@ -24,7 +25,7 @@ if ($_FILES['file']['name'] != '') {
         $errorMessage = 'Could not upload.';
     }
 
-    echo json_encode(array_merge(
+    return responseJson(array_merge(
         [
             'success' => $success,
             'data' => $imageSrc,
@@ -33,14 +34,12 @@ if ($_FILES['file']['name'] != '') {
             ? ['error' => $errorMessage]
             : []
     ));
-    exit;
 }
 
-echo json_encode(array_merge(
+return responseJson(array_merge(
     [
         'success' => false,
         'data'    => null,
         'error'   => 'File not exists.'
     ],
 ));
-exit;

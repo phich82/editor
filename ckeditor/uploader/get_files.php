@@ -1,15 +1,5 @@
 <?php
-
-function responseJson($data) {
-    echo json_encode($data);
-    exit;
-}
-
-function format_filesize($B, $D = 2) {
-    $S = 'KMGTPEZY';
-    $F = floor((strlen($B) - 1) / 3);
-    return sprintf("%.{$D}f", $B/pow(1024, $F)).' '.@$S[$F-1].'B';
-}
+include_once './functions.php';
 
 if (isset($_POST['path'])) {
     $pathRequest = trim($_POST['path'], '/');
@@ -72,7 +62,6 @@ if (isset($_POST['path'])) {
         'success' => true,
         'data' => $files,
     ]);
-
 }
 
 return responseJson([
