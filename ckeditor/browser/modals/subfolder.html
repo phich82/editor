@@ -1,4 +1,4 @@
-<div class="modal-subfolder fade" id="modal" tabindex="-1" role="dialog" aria-labelledby="modalLabel" aria-hidden="true">
+<div class="modal-subfolder fade modal-common" id="modal" tabindex="-1" role="dialog" aria-labelledby="modalLabel" aria-hidden="true">
     <div class="modal-dialog" role="document">
         <div class="modal-content rounded-0">
             <div class="modal-header p-1">
@@ -28,5 +28,72 @@
 <script>
     $(function () {
         $(document).find('.modal-subfolder').modal('toggle');
+
+        $(document).on('click', '.modal-subfolder .close', function () {
+            $('.modal-subfolder').modal('hide');
+        });
+
+        $('.modal-subfolder').on('hide.bs.modal', function (e) {
+            $('.wrap-modal-subfolder').remove();
+        });
+
+        $('.modal-subfolder').on('click', '.ok', function (e) {
+            e.stopPropagation();
+            e.preventDefault();
+
+            let modal = $(this).closest('.modal-subfolder');
+            let subfolder = modal.find('input[name="folder"]').val().trim();
+
+            if (!subfolder) {
+                alert('You must enter a folder name!');
+                return;
+            }
+
+            var charsNotAllowed = /[<>:"\/\\|?*\x00-\x1F]|^(?:aux|con|clock\$|nul|prn|com[1-9]|lpt[1-9])$/i;
+            if (charsNotAllowed.test(subfolder)) {
+                alert('Folder name contains invalid characters!');
+                return;
+            }
+
+            let folderSelected = '';
+            let folderElementSelected = $('.sidebar').find('.folder-selected');
+
+            if (folderElementSelected.hasClass('folder-selected')) {
+                folderSelected = folderElementSelected.data('path');
+            }
+
+            if (!folderSelected) {
+                alert('Please select the parent folder before creating subfolder!');
+                return;
+            }
+
+            modal.find('.cancelok').hide();
+            modal.find('.loader').show();
+
+            let dataForm = new FormData();
+            dataForm.append('folder', folderSelected + '/' + subfolder);
+
+            $.ajax({
+                url: '../uploader/create_folder.php',
+                method: 'POST',
+                data: dataForm,
+                dataType: 'json',
+                success: function(response, status, jqXHR) {
+                    console.log('response => ', response)
+                    if (response && response.success) {
+                        modal.modal('hide');
+                    } else {
+                        modal.find('.cancelok').show();
+                        modal.find('.uploaderror').html(response.error);
+                    }
+                    modal.find('.loader').hide();
+                },
+                error: function (jqXHR, textStatus, errorThrown) {
+                    console.log('error =>', jqXHR, textSatatus, errorThrown);
+                    modal.find('.cancelok').show();
+                    modal.find('.uploaderror').html(jqXHR.responseText);
+                }
+            });
+        });
     });
 </script>

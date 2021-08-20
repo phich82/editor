@@ -2,7 +2,7 @@
 include_once './functions.php';
 
 if (isset($_POST['path'])) {
-    $pathRequest = trim($_POST['path'], '/');
+    $pathRequest = trim($_POST['path'], '\/\\');
     $path = './storage'.DIRECTORY_SEPARATOR.$pathRequest;
 
     if (!is_dir($path) && !file_exists($path)) {

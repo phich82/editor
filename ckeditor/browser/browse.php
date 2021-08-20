@@ -126,7 +126,7 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
     </div>
 
     <!-- Modal -->
-    <div class="modal fade" id="modal" tabindex="-1" role="dialog" aria-labelledby="modalLabel" aria-hidden="true">
+    <div class="modal fade modal-common" id="modal" tabindex="-1" role="dialog" aria-labelledby="modalLabel" aria-hidden="true">
         <div class="modal-dialog" role="document">
             <div class="modal-content rounded-0">
                 <div class="modal-header p-1">
@@ -200,33 +200,6 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
 
 
 
-<div class="modal-subfolder fade show" id="modal" tabindex="-1" role="dialog" aria-labelledby="modalLabel" aria-hidden="true">
-    <div class="modal-dialog" role="document">
-        <div class="modal-content rounded-0">
-            <div class="modal-header p-1">
-                <h5 class="modal-title" id="modalLabel">New Name</h5>
-                <button type="button" class="border-0 bg-transparent close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <div class="modal-body">
-                <div class="form-group">
-                    <label for="folder">Type the new folder name:</label>
-                    <input type="text" class="form-control" name="folder" id="folder" aria-describedby="folderHelp" placeholder="Your folder name">
-                </div>
-            </div>
-            <div class="modal-footer p-1">
-                <div class="cancelok">
-                    <button type="button" class="btn btn-primary btn-sm pt-0 pb-0 border-secondary rounded-0 ok modal-save">Save</button>
-                    <button type="button" class="btn btn-secondary btn-sm pt-0 pb-0 border-secondary rounded-0 close" data-dismiss="modal">Cancel</button>
-                </div>
-                <!-- Show processing status -->
-                <div class="loader" style="display: none;"></div>
-            </div>
-        </div>
-    </div>
-</div><!-- /.Modal -->
-
 <script>
     function showImages(path) {
         $.ajax({
@@ -290,9 +263,9 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
             $('#uploadfile').click();
         });
 
-        // Subfolder
+        // Subfolder (modal)
         $(document).on('click', '.subfolder', function () {
-            $('body').append('<div class="wrap-modal-subfolder"></div>');
+            $('body').append('<div class="wrap-modal-subfolder" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; z-index: 2000;"></div>');
             $('body').find('.wrap-modal-subfolder').load('./modals/subfolder.html');
         })
 

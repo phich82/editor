@@ -106,29 +106,38 @@
 /* End - Loading */
 
 /* Modal */
-.modal {}
-.modal .modal-content {
+.modal-common {}
+.modal-common .modal-content {
     background-color: #ffffff;
     font-size: 12px;
     font-family: Arial,Helvetica,Tahoma,Verdana,Sans-Serif;
     color: #000000;
 }
 
-.modal .modal-header,
-.modal .modal-footer {
+.modal-common .modal-header,
+.modal-common .modal-footer {
     background-color: #f8f8f8;
 }
-.modal .modal-header .modal-title {
+.modal-common .modal-header .modal-title {
     font-weight: bold;
 }
-.modal .modal-header .close span {
+.modal-common .modal-header .close span {
     font-size: 20px;
     font-weight: bold;
 }
-.modal .modal-title {
+.modal-common .modal-title {
     font-size: 14px;
 }
-.modal .ok {
+.modal-common .ok {
     background-color: #04883c;
+}
+
+.modal-subfolder {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 2000;
 }
 /* End - Modal */
