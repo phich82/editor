@@ -1,17 +1,5 @@
 function onReady(fn){var d=document;(d.readyState=='loading')?d.addEventListener('DOMContentLoaded',fn):fn();}
 
-function ready(fn) {
-    if (document.readyState != 'loading') {
-        fn();
-    } else if (document.addEventListener) {
-        document.addEventListener('DOMContentLoaded', fn);
-    } else {
-        document.attachEvent('onreadystatechange', function() {
-            document.readyState != 'loading' && fn();
-        });
-    }
-}
-
 onReady(function () {
     (function() {
 

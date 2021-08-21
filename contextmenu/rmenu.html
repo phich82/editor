@@ -1,7 +1,8 @@
 <html>
 <head>
+    <link rel="stylesheet" href="./style.css">
     <style>
-        .show {
+        /* .show {
             z-index:1000;
             position: absolute;
             background-color:#C0C0C0;
@@ -11,85 +12,297 @@
             margin: 0;
             list-style-type: none;
             list-style: none;
-        }
+        } */
 
         .hide {
             display: none;
         }
 
-        .show li{ list-style: none; }
+        /* .show li{ list-style: none; }
         .show a { border: 0 !important; text-decoration: none; }
-        .show a:hover { text-decoration: underline !important; }
+        .show a:hover { text-decoration: underline !important; } */
     </style>
 </head>
 
 <body>
     <div id="test1">
-        <a href="www.google.com" class="test">Google</a>
+        <a href="www.google.com" class="test" data-menu-item-type="file">Google</a>
         <a href="www.google.com" class="test">Link 2</a>
-        <a href="www.google.com" class="test">Link 3</a>
+        <a href="www.google.com" class="test" data-menu-item-type="link">Link 3</a>
         <a href="www.google.com" class="test">Link 4</a>
     </div>
 
     <!-- initially hidden right-click menu -->
-    <div class="hide" id="rmenu">
-        <ul>
-            <li>
-                <a href="http://www.google.com">Google</a>
-            </li>
-
-            <li>
-                <a href="http://localhost:8080/login">Localhost</a>
-            </li>
-
-            <li>
-                <a href="C:\">C</a>
-            </li>
-        </ul>
-    </div>
+    <div class="context-menu" id="context-menu"></div>
 
 <script>
-function onReady(fn){var d=document;(d.readyState=='loading')?d.addEventListener('DOMContentLoaded',fn):fn();}
+var configs = {
+    selectorTarget: 'a.test',
+    selectorContext: '#context-menu',
+    menuItemType: 'data-menu-item-type',
+    contextActiveClassName: 'context-menu--active',
+    types: {
+        file: [
+            {
+                id: 'rename',
+                label: 'Rename',
+                icon: '<i class="fa fa-eye"></i>',
+                content: '',
+                event: 'click',
+                action: function (element, event) {
+                    alert('Rename');
+                }
+            },
+            {
+                id: 'edit',
+                icon: '',
+                label: 'Edit',
+                action: function (element) {
+                    alert('Edit');
+                }
+            },
+            {
+                id: 'delete',
+                icon: '',
+                label: 'Delete',
+                action: function (element) {
+                    alert('Delete');
+                }
+            },
+            {
+                id: 'download',
+                icon: '',
+                label: 'Download',
+                action: function (element) {
+                    alert('Download');
+                }
+            },
+        ],
+        text: [
+            {
+                id: ''
+            }
+        ],
+        folder: [
+            {
+                id: 'rename',
+                label: 'Rename',
+                content: '<a href="http://www.google.com">Rename</a>',
+                action: function (element, event) {
 
-onReady(function() {
-    document.querySelectorAll('a.test').forEach(function (element) {
-        element.addEventListener('contextmenu', function () {
-            document.getElementById("rmenu").className = "show"; 
-            document.getElementById("rmenu").style.top =  mouseY(event) + "px";
-            document.getElementById("rmenu").style.left = mouseX(event) + "px";
+                }
+            },
+        ],
+        link: [
+            {
+                id: 'link',
+                label: 'Download',
+                content: 'Download',
+                action: function (element) {
 
-            window.event.returnValue = false;
+                }
+            }
+        ],
+    },
+    actions: {
+        'file.rename': function (element, event, turnOff) {
+            alert('Rename 2');
+        },
+    },
+    keysTurnOffContextMenu: [],
+}
+
+var ContextMenu = {
+    config: {},
+    start(config) {
+        if (typeof config === 'object') {
+            this.config = Object.assign({}, this.config, config);
+        }
+        var configs = this.config;
+        var menuState = 0;
+        var contextmenu = document.querySelector(configs.selectorContext);
+        var contextMenuActiveClass = configs.contextActiveClassName;
+        var contextMenuItemsClassName = 'context-menu__items';
+        var contextMenuItemClassName  = 'context-menu__item';
+        var contextMenuLinkClassName  = 'context-menu__link';
+
+        // Waiting until DOM loaded
+        if (typeof onReady !== 'function') {
+            function onReady(fn){var d=document;(d.readyState=='loading')?d.addEventListener('DOMContentLoaded',fn):fn();}
+        }
+        // Initial
+        onReady(function() {
+            // Append menu items to context menu
+            document.querySelectorAll(configs.selectorTarget).forEach(function (element) {
+                element.addEventListener('contextmenu', function () {
+                    // Menu Item Type
+                    let menuItemType = element.getAttribute(configs.menuItemType);
+                    // Menu item type is not be declared
+                    if (!configs || !configs.types || !configs.types.hasOwnProperty(menuItemType)) {
+                        return;
+                    }
+                    // Build menu items based its type
+                    let itemsMenu = configs.types[menuItemType];
+                    let ul = document.createElement('ul');
+
+                    ul.classList.add(contextMenuItemsClassName)
+
+                    itemsMenu.forEach(function(item) {
+                        let li    = document.createElement('li');
+                        let a     = document.createElement('a');
+                        let icon  = document.createElement('label');
+                        let label = document.createElement('span');
+
+                        li.classList.add(contextMenuItemClassName);
+                        a.classList.add(contextMenuLinkClassName);
+
+                        icon.innerHTML  = item.icon || '';
+                        label.innerHTML = item.content || item.label || '';
+
+                        a.appendChild(icon);
+                        a.appendChild(label);
+                        li.appendChild(a);
+
+                        // Add event to each menu item on context menu
+                        li.addEventListener(item.event || 'click', function (e) {
+                            let keyAction = menuItemType + '.' + item.id;
+                            if (configs.actions.hasOwnProperty(keyAction)) {
+                                let action = configs.actions[keyAction];
+                                if (typeof action === 'function') {
+                                    action(li, e);
+                                    toggleMenuOff();
+                                }
+                            } else if (typeof item.action === 'function') {
+                                item.action(li, e);
+                                toggleMenuOff();
+                            }
+                        });
+                        // Add menu item to context menu
+                        ul.appendChild(li);
+                    });
+
+                    // Add menu items to context menu
+                    contextmenu.innerHTML = '';
+                    contextmenu.appendChild(ul);
+                    // Show context menu
+                    contextmenu.style.top =  mouseY(event) + 'px';
+                    contextmenu.style.left = mouseX(event) + 'px';
+                    toggleMenuOn();
+                    // Prevent default action of the event (preventDefault(), and defaultPrevented)
+                    window.event.returnValue = false; // false: prevent default action of the event
+                    window.event.preventDefault(); // prevent default action of the event
+                });
+            });
+
+            // Turn context menu off when click on anywhere
+            document.addEventListener('click', function (e) {
+                // Check whether we click on inside menu item of context menu
+                var clickeElIsLink = clickInsideElement(e, contextMenuLinkClassName);
+                // Turn context menu off if click on out of context menu
+                if (!clickeElIsLink) {
+                    var button = e.which || e.button;
+                    if (button === 1) {
+                        toggleMenuOff();
+                    }
+                }
+            });
+
+            // Turn context menu off when press ESC key
+            keyupListener();
         });
-    });
-});
 
-document.addEventListener('onlick', function (e) {
-    document.getElementById("rmenu").className = "hide";
-});
+        function mouseX(evt) {
+            if (evt.pageX) {
+                return evt.pageX;
+            }
+            if (evt.clientX) {
+                return evt.clientX + (document.documentElement.scrollLeft
+                    ? document.documentElement.scrollLeft
+                    : document.body.scrollLeft);
+            }
+            return null;
+        }
 
-function mouseX(evt) {
-    if (evt.pageX) {
-        return evt.pageX;
-    }
-    if (evt.clientX) {
-        return evt.clientX + (document.documentElement.scrollLeft
-            ? document.documentElement.scrollLeft
-            : document.body.scrollLeft);
-    }
-    return null;
-}
+        function mouseY(evt) {
+            if (evt.pageY) {
+                return evt.pageY;
+            }
+            if (evt.clientY) {
+                return evt.clientY + (document.documentElement.scrollTop
+                    ? document.documentElement.scrollTop
+                    : document.body.scrollTop);
+            }
+            return null;
+        }
 
-function mouseY(evt) {
-    if (evt.pageY) {
-        return evt.pageY;
-    }
-    if (evt.clientY) {
-        return evt.clientY + (document.documentElement.scrollTop
-            ? document.documentElement.scrollTop
-            : document.body.scrollTop);
-    }
-    return null;
-}
+        /**
+         * Check if we clicked inside an element with a particular class name
+         *
+         * @param Object e The event
+         * @param String className The class name to check against
+         * @return Boolean|HTMLElement
+         */
+        function clickInsideElement(e, className) {
+            var el = e.srcElement || e.target;
+            if (el.classList.contains(className)) {
+                return el;
+            }
+            while (el = el.parentNode) {
+                if (el.classList && el.classList.contains(className)) {
+                    return el;
+                }
+            }
+            return false;
+        }
+
+        /**
+         * Turns the custom context menu on.
+         */
+         function toggleMenuOn() {
+            if (menuState !== 1) {
+                menuState = 1;
+                // Add active class for showing contextmenu
+                contextmenu.classList.add(contextMenuActiveClass);
+            }
+        }
+
+        /**
+         * Turns the custom context menu off.
+         */
+        function toggleMenuOff() {
+            if (menuState !== 0) {
+                menuState = 0;
+                // Remove active class for closing contextmenu
+                contextmenu.classList.remove(contextMenuActiveClass);
+            }
+        }
+
+        /**
+         * Listens for keyup events.
+         */
+         function keyupListener() {
+            window.onkeyup = function(e) {
+                let EXIT_KEYBOARD = 27; // ESC key
+                let keys = [EXIT_KEYBOARD];
+                let keysMore = configs.keysTurnOffContextMenu || null;
+                // Add more keyboards for turn context menu off
+                if (Array.isArray(keysMore) && keysMore.length > 0) {
+                    keys = keys.concat(keysMore.filter(function(key) {
+                        return keys.indexOf(key) === -1;
+                    }));
+                }
+
+                // Closing contextmenu when press ESC key
+                if (keys.indexOf(e.keyCode) !== -1) {
+                    toggleMenuOff();
+                }
+            }
+        }
+    },
+};
+
+ContextMenu.start(configs);
+
 </script>
 </body>
 </html>
