@@ -141,3 +141,19 @@
     z-index: 2000;
 }
 /* End - Modal */
+
+.hidden {
+    display: none;
+}
+
+.error {
+    color: #f30c0c;
+}
+
+.success {
+    color: #4fd600;
+}
+
+.warn {
+    color: #e95702;
+}

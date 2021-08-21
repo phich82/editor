@@ -9,9 +9,10 @@
             </div>
             <div class="modal-body">
                 <div class="form-group">
-                    <label for="folder">Type the new folder name:</label>
+                    <label for="folder" class="pb-1">Type the new folder name:</label>
                     <input type="text" class="form-control" name="folder" id="folder" aria-describedby="folderHelp" placeholder="Your folder name">
                 </div>
+                <div class="mt-1 error_msg error hidden"></div>
             </div>
             <div class="modal-footer p-1">
                 <div class="cancelok">
@@ -72,24 +73,30 @@
 
             let dataForm = new FormData();
             dataForm.append('folder', folderSelected + '/' + subfolder);
+            console.log('dataForm => ', dataForm)
 
             $.ajax({
                 url: '../uploader/create_folder.php',
                 method: 'POST',
                 data: dataForm,
                 dataType: 'json',
+                contentType: false,
+                cache: false,
+                processData: false,
                 success: function(response, status, jqXHR) {
                     console.log('response => ', response)
                     if (response && response.success) {
                         modal.modal('hide');
                     } else {
                         modal.find('.cancelok').show();
-                        modal.find('.uploaderror').html(response.error);
+                        modal.find('.error_msg').html(response.error).show();
+
+                        hideAfter(modal.find('.error_msg'));
                     }
                     modal.find('.loader').hide();
                 },
                 error: function (jqXHR, textStatus, errorThrown) {
-                    console.log('error =>', jqXHR, textSatatus, errorThrown);
+                    console.log('error =>', jqXHR, textStatus, errorThrown);
                     modal.find('.cancelok').show();
                     modal.find('.uploaderror').html(jqXHR.responseText);
                 }

@@ -3,12 +3,20 @@ include_once './functions.php';
 
 if (isset($_POST['folder'])) {
     $subfolderRequest = trim($_POST['folder'], '\/\\');
-    $path = './storage'.DIRECTORY_SEPARATOR.$subfolderRequest;
+    $path = './storage/'.$subfolderRequest;
 
-    if (is_dir($path)) {
+    if (is_file($path)) {
         return responseJson([
             'success' => false,
-            'error' => "Folder [$pathRequest] existed.",
+            'error' => "Folder [$subfolderRequest] is not a folder.",
+            'data' => null,
+        ]);
+    }
+
+    if (file_exists($path)) {
+        return responseJson([
+            'success' => false,
+            'error' => "Folder [$subfolderRequest] existed.",
             'data' => null,
         ]);
     }

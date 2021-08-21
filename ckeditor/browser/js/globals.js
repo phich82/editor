@@ -60,3 +60,13 @@ function format_filesize(size, decimals) {
     var i = Math.floor(Math.log(size) / Math.log(1024));
     return (size / Math.pow(1024, i)).toFixed(decimals) * 1 + ' ' + ['B', 'KB', 'MB', 'GB', 'TB'][i];
 };
+
+// Hide element after the specified time
+function hideAfter(element, time) {
+    setTimeout(function () {
+        if (typeof element !== 'object') {
+            return $(element).html('').hide();
+        }
+        return element.html('').hide();
+    }, time || 5000);
+}
