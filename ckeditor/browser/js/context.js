@@ -1,43 +1,3 @@
-<html>
-<head>
-    <link rel="stylesheet" href="./style.css">
-    <style>
-        /* .show {
-            z-index:1000;
-            position: absolute;
-            background-color:#C0C0C0;
-            border: 1px solid blue;
-            padding: 2px;
-            display: block;
-            margin: 0;
-            list-style-type: none;
-            list-style: none;
-        } */
-
-        .hide {
-            display: none;
-        }
-
-        /* .show li{ list-style: none; }
-        .show a { border: 0 !important; text-decoration: none; }
-        .show a:hover { text-decoration: underline !important; } */
-    </style>
-</head>
-
-<body>
-    <div id="test1">
-        <button class="context-menu-target" data-ctx-item-type="file">Facebook</button>
-        <a href="www.google.com" class="context-menu-target" data-ctx-item-type="file">Google</a>
-        <a href="www.google.com" class="context-menu-target">Link 2</a>
-        <a href="www.google.com" class="context-menu-target" data-ctx-item-type="link">Link 3</a>
-        <a href="www.google.com" class="context-menu-target">Link 4</a>
-    </div>
-
-    <!-- initially hidden right-click menu -->
-    <div class="context-menu" id="context-menu"></div>
-
-<script>
-
 var ContextMenu = {
     start(config) {
         var configs = {
@@ -53,34 +13,35 @@ var ContextMenu = {
                         icon: '<i class="fa fa-eye"></i>',
                         label: 'Rename',
                         event: 'click',
-                        action: function (element, event) {}
+                        action: function (elementTarget, event) {}
                     },
                     {
                         id: 'view',
                         icon: '<i class="fa fa-eye"></i>',
                         label: 'View',
                         event: 'click',
-                        action: function (element, event) {}
+                        action: function (elementTarget, event) {}
                     },
                     {
                         id: 'edit',
                         icon: '<i class="fa fa-edit"></i>',
                         label: 'Edit',
-                        action: function (element) {}
+                        event: 'click',
+                        action: function (elementTarget, event) {}
                     },
                     {
                         id: 'delete',
                         icon: '<i class="fa fa-trash"></i>',
                         label: 'Delete',
                         event: 'click',
-                        action: function (element) {}
+                        action: function (elementTarget, event) {}
                     },
                     {
                         id: 'download',
                         icon: '<i class="fa fa-download"></i>',
                         label: 'Download',
                         event: 'click',
-                        action: function (element) {}
+                        action: function (elementTarget, event) {}
                     },
                 ],
                 folder: [
@@ -89,7 +50,7 @@ var ContextMenu = {
                         icon: '',
                         label: 'Rename',
                         event: 'click',
-                        action: function (element, event) {}
+                        action: function (elementTarget, event) {}
                     },
                 ],
                 link: [
@@ -98,13 +59,13 @@ var ContextMenu = {
                         icon: '<i class="fa fa-download"></i>',
                         label: 'Download',
                         event: 'click',
-                        action: function (element) {}
+                        action: function (elementTarget, event) {}
                     },
                 ],
             },
             actions: {
-                // '{type}.{id}': function (element, event) {}
-                // 'file.rename': function (element, event) {},
+                // '{type}.{id}': function (elementTarget, event) {}
+                // 'file.rename': function (elementTarget, event) {},
             },
         }
 
@@ -113,6 +74,8 @@ var ContextMenu = {
             configs = Object.assign({}, configs, config);
         }
 
+        console.log(configs)
+
         var menuState   = 0;
         var contextmenu = document.querySelector(configs.selectorContext);
         var contextMenuActiveClass = configs.contextActiveClassName;
@@ -120,6 +83,7 @@ var ContextMenu = {
         var contextMenuItemsClassName = 'context-menu__items';
         var contextMenuItemClassName  = 'context-menu__item';
         var contextMenuLinkClassName  = 'context-menu__link';
+        var contextMenuLinkDisableClassName  = 'context-menu__link-disable';
 
         // Waiting until DOM loaded
         if (typeof onReady !== 'function') {
@@ -133,44 +97,52 @@ var ContextMenu = {
                 element.addEventListener('contextmenu', function () {
                     // Menu Item Type
                     let menuItemType = element.getAttribute(menuItemTypeAttrName);
-                    console.log(menuItemType)
                     // Menu item type is not be declared
                     if (!configs || !configs.types || !configs.types.hasOwnProperty(menuItemType)) {
                         return;
                     }
                     // Build menu items based its type
-                    let itemsMenu = configs.types[menuItemType];
+                    let itemsConfig = configs.types[menuItemType];
                     let ul = document.createElement('ul');
 
                     ul.classList.add(contextMenuItemsClassName)
 
-                    itemsMenu.forEach(function(item) {
+                    itemsConfig.forEach(function(itemConfig) {
                         let li    = document.createElement('li');
                         let a     = document.createElement('a');
                         let icon  = document.createElement('label');
                         let label = document.createElement('span');
+                        let itemDisabled = typeof itemConfig.disabled === 'function'
+                            ? itemConfig.disabled(element)
+                            : false;
 
                         li.classList.add(contextMenuItemClassName);
                         a.classList.add(contextMenuLinkClassName);
 
-                        icon.innerHTML  = item.icon  || '';
-                        label.innerHTML = item.label || '';
+                        icon.innerHTML  = itemConfig.icon  || '';
+                        label.innerHTML = '&nbsp;' + (itemConfig.label || '');
+
+                        if (itemDisabled) {
+                            a.classList.add(contextMenuLinkDisableClassName);
+                        } else {
+                            a.classList.remove(contextMenuLinkDisableClassName);
+                        }
 
                         a.appendChild(icon);
                         a.appendChild(label);
                         li.appendChild(a);
 
                         // Add event to each menu item on context menu
-                        li.addEventListener(item.event || 'click', function (e) {
-                            let keyAction = menuItemType + '.' + item.id;
+                        !itemDisabled && li.addEventListener(itemConfig.event || 'click', function (e) {
+                            let keyAction = menuItemType + '.' + itemConfig.id;
                             if (configs.actions.hasOwnProperty(keyAction)) {
                                 let action = configs.actions[keyAction];
                                 if (typeof action === 'function') {
-                                    action(li, e);
+                                    action(element, e);
                                     toggleMenuOff();
                                 }
-                            } else if (typeof item.action === 'function') {
-                                item.action(li, e);
+                            } else if (typeof itemConfig.action === 'function') {
+                                itemConfig.action(element, e);
                                 toggleMenuOff();
                             }
                         });
@@ -187,8 +159,8 @@ var ContextMenu = {
                     contextmenu.innerHTML = '';
                     contextmenu.appendChild(ul);
                     // Show context menu
-                    contextmenu.style.top =  mouseY(event) + 'px';
-                    contextmenu.style.left = mouseX(event) + 'px';
+                    contextmenu.style.top =  mouseY(window.event) + 'px';
+                    contextmenu.style.left = mouseX(window.event) + 'px';
                     toggleMenuOn();
                     // Prevent default action of the event (preventDefault(), and defaultPrevented)
                     window.event.returnValue = false; // false: prevent default action of the event
@@ -299,6 +271,7 @@ var ContextMenu = {
                 let EXIT_KEYBOARD = 27; // ESC key
                 let keys = [EXIT_KEYBOARD];
                 let keysMore = configs.keysTurnOffContextMenu || null;
+
                 // Add more keyboards for turn context menu off
                 if (Array.isArray(keysMore) && keysMore.length > 0) {
                     keys = keys.concat(keysMore.filter(function(key) {
@@ -314,15 +287,3 @@ var ContextMenu = {
         }
     },
 };
-
-ContextMenu.start({
-    actions: {
-        'file.rename': function (element, event) {
-            alert('You want to rename folder.')
-        }
-    },
-});
-
-</script>
-</body>
-</html>

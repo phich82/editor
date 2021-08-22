@@ -10,7 +10,7 @@
             <div class="modal-body">
                 <div class="form-group">
                     <label for="folder" class="pb-1">Type the new folder name:</label>
-                    <input type="text" class="form-control" name="folder" id="folder" aria-describedby="folderHelp" placeholder="Your folder name">
+                    <input type="text" class="form-control" name="folder" id="folder" aria-describedby="folderHelp" placeholder="Your folder name" />
                 </div>
                 <div class="mt-1 error_msg error hidden"></div>
             </div>
@@ -28,7 +28,11 @@
 
 <script>
     $(function () {
-        $(document).find('.modal-subfolder').modal('toggle');
+        $('.wrap-modal-subfolder').find('#folder').focus();
+
+        $('.modal-subfolder').modal('toggle');
+
+        // $(document).find('.modal-subfolder').find('input[name=folder]').focus();
 
         $(document).on('click', '.modal-subfolder .close', function () {
             $('.modal-subfolder').modal('hide');
@@ -72,11 +76,11 @@
             modal.find('.loader').show();
 
             let dataForm = new FormData();
+            dataForm.append('action', 'create');
             dataForm.append('folder', folderSelected + '/' + subfolder);
-            console.log('dataForm => ', dataForm)
 
             $.ajax({
-                url: '../uploader/create_folder.php',
+                url: '../uploader/do_folder.php',
                 method: 'POST',
                 data: dataForm,
                 dataType: 'json',

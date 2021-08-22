@@ -16,6 +16,7 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/js/bootstrap.min.js" integrity="sha384-cn7l7gDp0eyniUwwAZgrzD06kc/tftFf19TOAs2zVinnD/C7E91j9yyk5//jjpt/" crossorigin="anonymous"></script>
     <script src="./js/globals.js"></script>
     <script src="./js/contextmenu.js"></script>
+    <script src="./js/context.js"></script>
 </head>
 
 <?php
@@ -33,7 +34,7 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
         }
             $tab = $levelCurrent * 20;
 
-            $out .=    "<button class='btn border-top-0 border-secondary rounded-0 shadow-none w-sidebar' data-path='{$directory['path']}'>";
+            $out .=    "<button class='btn border-top-0 border-secondary rounded-0 shadow-none w-sidebar context-menu-target' data-path='{$directory['path']}' data-ctx-item-type='folder'>";
             $out .=        "<div class='row'>";
             $out .=            "<div class='col text-start folder' style='padding-left: {$tab}px;'>";
             $out .=                "<i class='bi bi-folder icon-folder'></i>\n";
@@ -95,7 +96,9 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
         <div class="content row border-content">
             <div class="col-3 reset-pad-col sidebar">
             <?php foreach (scanDirectory() as $directory): ?>
-                <button class="btn border-top-0 border-secondary rounded-0 shadow-none w-sidebar<?php echo trim($directory['path'], '/\\') == 'Images' ? ' folder-selected' : ''; ?>"
+                <button class="btn border-top-0 border-secondary rounded-0 shadow-none w-sidebar context-menu-target<?php echo trim($directory['path'], '/\\') == 'Images' ? ' folder-selected' : ''; ?>"
+                        data-ctx-item-type="folder"
+                        data-level="<?php echo $directory['level']; ?>"
                         data-path="<?php echo $directory['path']; ?>">
                     <div class="row">
                         <div class="col text-start folder">
@@ -115,7 +118,7 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
                 <!-- collapse -->
                 <?php
                 if (!empty($directory['children'])) {
-                    print subfolders($directory['children'], createId($directory['name']), $directory['level']);
+                    echo subfolders($directory['children'], createId($directory['name']), $directory['level']);
                 }
                 ?><!-- /.collapse -->
             <?php endforeach; ?>
@@ -198,7 +201,7 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
         </ul>
     </nav><!-- /Context Menu -->
 
-
+    <div id="context-menu-folder" class="context-menu"></div>
 
 <script>
     function showImages(path) {
@@ -241,6 +244,65 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
         });
     }
 
+    function showSubfolderModal() {
+        $('body').append('<div class="wrap-modal-subfolder" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; z-index: 2000;"></div>');
+        $('body').find('.wrap-modal-subfolder').load('./modals/create-subfolder.html');
+    }
+
+    function showRenameFolderModal() {
+        $('body').append('<div class="wrap-modal-subfolder" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; z-index: 2000;"></div>');
+        $('body').find('.wrap-modal-subfolder').load('./modals/rename-folder.html');
+    }
+
+    function showDeleteFolderModal(elementTarget) {
+        let folder = $(elementTarget).data('path');
+        $('body').append(`<div class="wrap-modal-subfolder" data-folder="${folder}" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; z-index: 2000;"></div>`);
+        $('body').find('.wrap-modal-subfolder').load('./modals/delete-folder.html');
+    }
+
+    var configs = {
+        selectorTarget: '.context-menu-target',
+        selectorContext: '#context-menu-folder',
+        types: {
+            folder: [
+                {
+                    id: 'subfolder',
+                    icon: '<i class="bi bi-folder-plus"></i>',
+                    label: 'New Subfolder'
+                },
+                {
+                    id: 'rename',
+                    icon: '<i class="bi bi-file-earmark-ruled"></i>',
+                    label: 'Rename',
+                    disabled: function (elementTarget) {
+                        return $(elementTarget).data('level') == 0;
+                    }
+                },
+                {
+                    id: 'delete',
+                    icon: '<i class="bi bi-trash"></i>',
+                    label: 'Delete',
+                    disabled: function (elementTarget) {
+                        return $(elementTarget).data('level') == 0;
+                    }
+                },
+            ]
+        },
+        actions: {
+            'folder.subfolder': function (elementTarget, event) {
+                console.log($(elementTarget).data('path'))
+                showSubfolderModal();
+            },
+            'folder.rename': function (elementTarget, event) {
+                showRenameFolderModal();
+            },
+            'folder.delete': function (elementTarget, event) {
+                showDeleteFolderModal(elementTarget);
+            },
+        }
+    };
+    ContextMenu.start(configs);
+
     $(function() {
         // Reset input file after modal closed
         $('.modal').on('hide.bs.modal', function (e) {
@@ -265,8 +327,9 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
 
         // Subfolder (modal)
         $(document).on('click', '.subfolder', function () {
-            $('body').append('<div class="wrap-modal-subfolder" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; z-index: 2000;"></div>');
-            $('body').find('.wrap-modal-subfolder').load('./modals/subfolder.html');
+            // $('body').append('<div class="wrap-modal-subfolder" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; z-index: 2000;"></div>');
+            // $('body').find('.wrap-modal-subfolder').load('./modals/subfolder.html');
+            showSubfolderModal();
         })
 
         // Click on each image

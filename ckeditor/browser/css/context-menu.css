@@ -38,6 +38,20 @@
   }
 
   .context-menu__link:hover {
-    color: #fff;
+    color: #ffffff;
     background-color: #0066aa;
+    cursor: pointer;
+  }
+
+  .context-menu__link-disable {
+    display: block;
+    padding: 4px 12px;
+    color: #aaa8a8;
+    text-decoration: none;
+  }
+
+  .context-menu__link-disable:hover {
+    color: #aaa8a8 !important;
+    background-color: #ffffff !important;
+    cursor: not-allowed;
   }
