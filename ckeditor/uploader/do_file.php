@@ -1,7 +1,27 @@
 <?php
 include_once './functions.php';
 
-if (isset($_POST['path'])) {
+if (!isset($_POST['action'])) {
+    return responseJson([
+        'success' => false,
+        'error' => 'Missing `action` key.',
+        'data' => null,
+    ]);
+}
+
+$action = $_POST['action'];
+
+// Get files
+if ($action == 'read' || $action == 'get') {
+    // Validation
+    if (!isset($_POST['path'])) {
+        return responseJson([
+            'success' => false,
+            'error' => 'Missing `path` key.',
+            'data' => null,
+        ]);
+    }
+
     $pathRequest = trim($_POST['path'], '\/\\');
     $path = './storage'.DIRECTORY_SEPARATOR.$pathRequest;
 
@@ -64,8 +84,13 @@ if (isset($_POST['path'])) {
     ]);
 }
 
+// Rename file
+if ($action == 'rename') {
+
+}
+
 return responseJson([
     'success' => false,
-    'error' => 'Missing `path` key.',
+    'error' => "Action [{$_POST['action']}] not be allowed.",
     'data' => null,
 ]);

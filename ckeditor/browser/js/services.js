@@ -1,5 +1,22 @@
 var Service = {};
 
+Service.download = function (url, fileName) {
+    var xhr = new XMLHttpRequest();
+    xhr.open("GET", url, true);
+    xhr.responseType = "blob";
+    xhr.onload = function() {
+        var urlCreator = window.URL || window.webkitURL;
+        var imageUrl = urlCreator.createObjectURL(this.response);
+        var a = document.createElement('a');
+        a.href = imageUrl;
+        a.download = fileName || url.split('/').pop();
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+    };
+    xhr.send();
+};
+
 Service.Folder = {
     create: function(callback) {
         if (typeof callback === 'function') {
@@ -19,18 +36,13 @@ Service.Folder = {
 };
 
 Service.Image = {
-    apply: function(callback) {
-        if (typeof callback !== 'function') {
-            callback = function () {};
-        }
-    },
     view: function(callback) {
         if (typeof callback !== 'function') {
             callback = function () {};
         }
         params.action = 'view';
         $.ajax({
-            url: '../uploader/get_files.php',
+            url: '../uploader/do_file.php',
             method: 'POST',
             data: params,
             dataType: 'json',
@@ -49,7 +61,7 @@ Service.Image = {
         }
         params.action = 'download';
         $.ajax({
-            url: '../uploader/get_files.php',
+            url: '../uploader/do_file.php',
             method: 'POST',
             data: params,
             dataType: 'json',
@@ -68,7 +80,7 @@ Service.Image = {
         }
         params.action = 'edit';
         $.ajax({
-            url: '../uploader/get_files.php',
+            url: '../uploader/do_file.php',
             method: 'POST',
             data: params,
             dataType: 'json',
@@ -87,7 +99,7 @@ Service.Image = {
         }
         params.action = 'rename';
         $.ajax({
-            url: '../uploader/get_files.php',
+            url: '../uploader/do_file.php',
             method: 'POST',
             data: params,
             dataType: 'json',
@@ -106,7 +118,7 @@ Service.Image = {
         }
         params.action = 'delete';
         $.ajax({
-            url: '../uploader/get_files.php',
+            url: '../uploader/do_file.php',
             method: 'POST',
             data: params,
             dataType: 'json',

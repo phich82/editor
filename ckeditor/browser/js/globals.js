@@ -70,3 +70,11 @@ function hideAfter(element, time) {
         return element.html('').hide();
     }, time || 5000);
 }
+
+// Get filename from path
+function getFileName(path) {
+    if (!path) {
+        return false;
+    }
+    return path.split('/').pop();
+}

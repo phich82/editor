@@ -185,9 +185,9 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
 <script>
     function showImages(path) {
         $.ajax({
-            url: '../uploader/get_files.php',
+            url: '../uploader/do_file.php',
             method: 'POST',
-            data: { path },
+            data: { path, action: 'read' },
             dataType: 'json',
             success: function (response) {
                 console.log("response =>", response);
@@ -240,6 +240,12 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
         let folder = $(elementTarget).data('path');
         $('body').append(`<div class="wrap-modal-subfolder" data-folder="${folder}" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; z-index: 2000;"></div>`);
         $('body').find('.wrap-modal-subfolder').load('./modals/delete-folder.html');
+    }
+
+    function showRenameFileModal(elementTarget) {
+        let path = $(elementTarget).data('path');
+        $('body').append(`<div data-path="${path}" class="wrap-modal-subfolder" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; z-index: 2000;"></div>`);
+        $('body').find('.wrap-modal-subfolder').load('./modals/rename-file.html');
     }
 
     var configs = {
@@ -317,20 +323,14 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
                 showDeleteFolderModal(elementTarget);
             },
             'image.apply': function (elementTarget, event) {
-                let itemSelected = $('.images').find('.image-selected');
-                if (itemSelected.hasClass('image-selected')) {
-                    let pathFile = itemSelected.data('path');
-                    let mime = itemSelected.data('mime');
-                    let src = itemSelected.find('img').attr('src');
-
-                    // If it is an image, apply it to ckeditor
-                    if (/^image\/.*/gi.test(mime)) {
-                        return returnFileUrl(src);
-                    } else {
-                        alert('Only apply for image files!')
-                    }
+                let path = $(elementTarget).data('path');
+                let mime = $(elementTarget).data('mime');
+                let src  = $(elementTarget).find('img').attr('src');
+                // If it is an image, apply it to ckeditor
+                if (/^image\/.*/gi.test(mime)) {
+                    return returnFileUrl(src);
                 } else {
-                    alert('No images selected before apply!');
+                    alert('Only apply for image files!')
                 }
             },
             'image.view': function (elementTarget, event) {
@@ -339,9 +339,8 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
                 });
             },
             'image.download': function (elementTarget, event) {
-                Service.Image.download(function (success, data) {
-
-                });
+                let url = $(elementTarget).find('img').attr('src');
+                Service.download(url);
             },
             'image.edit': function (elementTarget, event) {
                 Service.Image.edit(function (success, data) {
@@ -349,11 +348,8 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
                 });
             },
             'image.rename': function (elementTarget, event) {
-                let params = {};
-                console.log('[rename] elementTarget => ', elementTarget)
-                // Service.Image.rename(params, function (success, data) {
-                    
-                // });
+                console.log('[rename] elementTarget => ', elementTarget);
+                showRenameFileModal(elementTarget);
             },
             'image.delete': function (elementTarget, event) {
                 Service.Image.delete(function (success, data) {
