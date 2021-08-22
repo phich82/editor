@@ -15,8 +15,8 @@
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.3/dist/umd/popper.min.js" integrity="sha384-eMNCOe7tC1doHpGoWe/6oMVemdAVTMs2xqW4mwXrXsW0L84Iytr2wi5v2QjrP/xp" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/js/bootstrap.min.js" integrity="sha384-cn7l7gDp0eyniUwwAZgrzD06kc/tftFf19TOAs2zVinnD/C7E91j9yyk5//jjpt/" crossorigin="anonymous"></script>
     <script src="./js/globals.js"></script>
-    <script src="./js/contextmenu.js"></script>
     <script src="./js/context.js"></script>
+    <script src="./js/services.js"></script>
 </head>
 
 <?php
@@ -175,33 +175,12 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
                 </div>
             </div>
         </div>
-    </div><!-- /.Modal -->
+    </div>
+    <!-- /.Modal -->
 
     <!-- Context Menu -->
-    <nav id="context-menu" class="context-menu">
-        <ul class="context-menu__items">
-            <li class="context-menu__item">
-                <a href="#" class="context-menu__link" data-action="Apply"><i class="bi bi-check-lg"></i> Apply</a>
-            </li>
-            <li class="context-menu__item">
-                <a href="#" class="context-menu__link" data-action="View"><i class="bi bi-eye"></i> View</a>
-            </li>
-            <li class="context-menu__item">
-                <a href="#" class="context-menu__link" data-action="Download"><i class="bi bi-download"></i> Download</a>
-            </li>
-            <li class="context-menu__item">
-                <a href="#" class="context-menu__link" data-action="Edit"><i class="bi bi-pencil"></i> Edit</a>
-            </li>
-            <li class="context-menu__item">
-                <a href="#" class="context-menu__link" data-action="Rename"><i class="bi bi-file-earmark-ruled"></i> Rename</a>
-            </li>
-            <li class="context-menu__item">
-                <a href="#" class="context-menu__link" data-action="Delete"><i class="bi bi-trash"></i> Delete</a>
-            </li>
-        </ul>
-    </nav><!-- /Context Menu -->
-
     <div id="context-menu-folder" class="context-menu"></div>
+    <!-- /Context Menu -->
 
 <script>
     function showImages(path) {
@@ -220,7 +199,7 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
                             out += '<div class="row row-image">';
                         }
                         out += '<div class="col-3 block-image">';
-                        out +=      `<div class="wrap-image task" data-mime="${info.mime}" data-path="${info.folder}/${info.basename}">`;
+                        out +=      `<div class="wrap-image context-menu-target" data-mime="${info.mime}" data-path="${info.folder}/${info.basename}" data-ctx-item-type="image">`;
                         out +=          `<img class="image" src="${info.src}" height="100" width="100%" alt="${info.filename}" />`;
                         out +=          `<div class="fname">${info.basename}</div>`;
                         out +=          `<div class="fmodified">${info.modified}</div>`;
@@ -236,10 +215,13 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
                     out += '</div>';
 
                     $('.main-content').html(out);
+
+                    // Restart context menu for binding images to it
+                    bindContextMenu();
                 }
             },
-            error: function (jqXHR, textSatatus, errorThrown) {
-                console.log('error =>', jqXHR, textSatatus, errorThrown);
+            error: function (jqXHR, textStatus, errorThrown) {
+                console.log('error =>', jqXHR, textStatus, errorThrown);
             }
         });
     }
@@ -286,24 +268,109 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
                         return $(elementTarget).data('level') == 0;
                     }
                 },
+            ],
+            image: [
+                {
+                    id: 'apply',
+                    icon: '<i class="bi bi-check-lg"></i>',
+                    label: 'Apply'
+                },
+                {
+                    id: 'view',
+                    icon: '<i class="bi bi-eye"></i>',
+                    label: 'View'
+                },
+                {
+                    id: 'download',
+                    icon: '<i class="bi bi-download"></i>',
+                    label: 'Download'
+                },
+                {
+                    id: 'edit',
+                    icon: '<i class="bi bi-pencil"></i>',
+                    label: 'Edit'
+                },
+                {
+                    id: 'rename',
+                    icon: '<i class="bi bi-file-earmark-ruled"></i>',
+                    label: 'Rename'
+                },
+                {
+                    id: 'delete',
+                    icon: '<i class="bi bi-trash"></i>',
+                    label: 'Delete'
+                },
             ]
+        },
+        activations: { // Automatically click target elment to be selected when click mouse right on it
+            image: true,
+            folder: true,
         },
         actions: {
             'folder.subfolder': function (elementTarget, event) {
-                console.log($(elementTarget).data('path'))
-                showSubfolderModal();
+                showSubfolderModal(elementTarget);
             },
             'folder.rename': function (elementTarget, event) {
-                showRenameFolderModal();
+                showRenameFolderModal(elementTarget);
             },
             'folder.delete': function (elementTarget, event) {
                 showDeleteFolderModal(elementTarget);
             },
+            'image.apply': function (elementTarget, event) {
+                let itemSelected = $('.images').find('.image-selected');
+                if (itemSelected.hasClass('image-selected')) {
+                    let pathFile = itemSelected.data('path');
+                    let mime = itemSelected.data('mime');
+                    let src = itemSelected.find('img').attr('src');
+
+                    // If it is an image, apply it to ckeditor
+                    if (/^image\/.*/gi.test(mime)) {
+                        return returnFileUrl(src);
+                    } else {
+                        alert('Only apply for image files!')
+                    }
+                } else {
+                    alert('No images selected before apply!');
+                }
+            },
+            'image.view': function (elementTarget, event) {
+                Service.Image.view(function (success, data) {
+                    
+                });
+            },
+            'image.download': function (elementTarget, event) {
+                Service.Image.download(function (success, data) {
+
+                });
+            },
+            'image.edit': function (elementTarget, event) {
+                Service.Image.edit(function (success, data) {
+                    
+                });
+            },
+            'image.rename': function (elementTarget, event) {
+                let params = {};
+                console.log('[rename] elementTarget => ', elementTarget)
+                // Service.Image.rename(params, function (success, data) {
+                    
+                // });
+            },
+            'image.delete': function (elementTarget, event) {
+                Service.Image.delete(function (success, data) {
+                    
+                });
+            }
         }
     };
-    ContextMenu.start(configs);
+
+    function bindContextMenu() {
+        ContextMenu.start(configs);
+    }
 
     $(function() {
+        // Bind context menu
+        bindContextMenu();
+
         // Reset input file after modal closed
         $('.modal').on('hide.bs.modal', function (e) {
             // Reset input file
@@ -334,7 +401,6 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
 
         // Click on each image
         $(document).on('click', '.images .wrap-image', function() {
-            //returnFileUrl($(this).attr('src'));
             $(this).closest('.images').find('.wrap-image').removeClass('image-selected');
             $(this).addClass('image-selected');
         });

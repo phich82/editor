@@ -1,5 +1,7 @@
 var ContextMenu = {
     start(config) {
+        'use strict';
+
         var configs = {
             selectorTarget: '.context-menu-target',
             selectorContext: '#context-menu',
@@ -74,8 +76,6 @@ var ContextMenu = {
             configs = Object.assign({}, configs, config);
         }
 
-        console.log(configs)
-
         var menuState   = 0;
         var contextmenu = document.querySelector(configs.selectorContext);
         var contextMenuActiveClass = configs.contextActiveClassName;
@@ -86,9 +86,7 @@ var ContextMenu = {
         var contextMenuLinkDisableClassName  = 'context-menu__link-disable';
 
         // Waiting until DOM loaded
-        if (typeof onReady !== 'function') {
-            function onReady(fn){var d=document;(d.readyState=='loading')?d.addEventListener('DOMContentLoaded',fn):fn();}
-        }
+        function onReady(fn){var d=document;(d.readyState=='loading')?d.addEventListener('DOMContentLoaded',fn):fn();}
 
         // Initial
         onReady(function() {
@@ -101,6 +99,10 @@ var ContextMenu = {
                     if (!configs || !configs.types || !configs.types.hasOwnProperty(menuItemType)) {
                         return;
                     }
+                    // Check whether we require automatically to click target element to be selected when click mouse right on it
+                    if (configs.activations && configs.activations[menuItemType] === true) {
+                        element.click();
+                    }
                     // Build menu items based its type
                     let itemsConfig = configs.types[menuItemType];
                     let ul = document.createElement('ul');
@@ -112,6 +114,8 @@ var ContextMenu = {
                         let a     = document.createElement('a');
                         let icon  = document.createElement('label');
                         let label = document.createElement('span');
+
+                        // Check menu item disabled
                         let itemDisabled = typeof itemConfig.disabled === 'function'
                             ? itemConfig.disabled(element)
                             : false;
