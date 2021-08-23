@@ -243,7 +243,7 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
     }
 
     function showRenameFileModal(elementTarget) {
-        let path = $(elementTarget).data('path');
+        let path = $(elementTarget).attr('data-path');
         $('body').append(`<div data-path="${path}" class="wrap-modal-subfolder" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; z-index: 2000;"></div>`);
         $('body').find('.wrap-modal-subfolder').load('./modals/rename-file.html');
     }

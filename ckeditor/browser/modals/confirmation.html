@@ -9,8 +9,7 @@
             </div>
             <div class="modal-body">
                 <div class="form-group">
-                    <label for="folder" class="pb-1">Type the new file name:</label>
-                    <input type="text" class="form-control" name="folder" id="folder" aria-describedby="folderHelp" placeholder="Enter your filename" />
+                    <input type="text" class="form-control" name="folder" id="folder" aria-describedby="folderHelp" placeholder="Your folder name" />
                 </div>
                 <div class="mt-1 error_msg error hidden"></div>
             </div>
@@ -27,18 +26,8 @@
 </div><!-- /.Modal -->
 
 <script>
-    function loadDataOnInput() {
-        let oldFile = $('.wrap-modal-subfolder').data('path');
-        let input = $('.wrap-modal-subfolder').find('#folder');
-        input.val(getFileName(oldFile));
-        // Focus after 1s
-        setTimeout(function() {
-            input.focus();
-        }, 1000);
-    }
-
     $(function () {
-        loadDataOnInput();
+        $('.wrap-modal-subfolder').find('#folder').focus();
 
         $(document).find('.modal-subfolder').modal('toggle');
 
@@ -55,31 +44,41 @@
             e.preventDefault();
 
             let modal = $(this).closest('.modal-subfolder');
-            let newFile = modal.find('input[name="folder"]').val().trim();
+            let folder = modal.find('input[name="folder"]').val().trim();
 
-            if (!newFile) {
-                alert('You must enter a filename!');
+            if (!folder) {
+                alert('You must enter a folder name!');
                 return;
             }
 
             var charsNotAllowed = /[<>:"\/\\|?*\x00-\x1F]|^(?:aux|con|clock\$|nul|prn|com[1-9]|lpt[1-9])$/i;
-            if (charsNotAllowed.test(newFile)) {
-                alert('Filename contains invalid characters!');
+            if (charsNotAllowed.test(folder)) {
+                alert('Folder name contains invalid characters!');
                 return;
             }
 
-            let oldFile = $('.wrap-modal-subfolder').data('path');
+            let folderSelected = '';
+            let folderElementSelected = $('.sidebar').find('.folder-selected');
+
+            if (folderElementSelected.hasClass('folder-selected')) {
+                folderSelected = folderElementSelected.data('path');
+            }
+
+            if (!folderSelected) {
+                alert('Please select the parent folder before renaming folder!');
+                return;
+            }
 
             modal.find('.cancelok').hide();
             modal.find('.loader').show();
 
             let dataForm = new FormData();
             dataForm.append('action', 'rename');
-            dataForm.append('old_file', oldFile);
-            dataForm.append('new_file', newFile);
+            dataForm.append('old_folder', folderSelected);
+            dataForm.append('folder', folder);
 
             $.ajax({
-                url: '../uploader/do_file.php',
+                url: '../uploader/do_folder.php',
                 method: 'POST',
                 data: dataForm,
                 dataType: 'json',
@@ -89,17 +88,6 @@
                 success: function(response, status, jqXHR) {
                     console.log('response => ', response)
                     if (response && response.success) {
-                        let data = response.data;
-                        let imageSelected = $('.images').find('.image-selected');
-                        // Update information of image selected
-                        imageSelected.attr('data-path', data.path);
-                        imageSelected.attr('data-mime', data.mime);
-                        imageSelected.find('img').attr('src', data.src);
-                        imageSelected.find('img').attr('alt', data.filename);
-                        imageSelected.find('.fname').html(data.basename);
-                        imageSelected.find('.fmodified').html(data.modified);
-                        imageSelected.find('.fsize').html(data.size);
-                        // Hide modal
                         modal.modal('hide');
                     } else {
                         modal.find('.cancelok').show();
@@ -115,7 +103,6 @@
                     modal.find('.error_msg').html(jqXHR.responseText).show();
 
                     hideAfter(modal.find('.error_msg'));
-                    modal.find('.loader').hide();
                 }
             });
         });

@@ -86,7 +86,78 @@ if ($action == 'read' || $action == 'get') {
 
 // Rename file
 if ($action == 'rename') {
+    // Validation
+    if (!isset($_POST['old_file'])) {
+        return responseJson([
+            'success' => false,
+            'error' => 'Missing `old_file` key.',
+            'data' => null,
+        ]);
+    }
+    if (empty($_POST['old_file'])) {
+        return responseJson([
+            'success' => false,
+            'error' => 'Old file is empty.',
+            'data' => null,
+        ]);
+    }
+    if (!isset($_POST['new_file'])) {
+        return responseJson([
+            'success' => false,
+            'error' => 'Missing `new_file` key.',
+            'data' => null,
+        ]);
+    }
+    if (empty($_POST['new_file'])) {
+        return responseJson([
+            'success' => false,
+            'error' => 'New file is empty.',
+            'data' => null,
+        ]);
+    }
 
+    $oldFile = $_POST['old_file'];
+    $newFile = $_POST['new_file'];
+
+    $oldFile = trim($oldFile, '\/\\');
+    $oldFilePath = './storage'.DIRECTORY_SEPARATOR.$oldFile;
+
+    if (!file_exists($oldFilePath)) {
+        return responseJson([
+            'success' => false,
+            'error' => "Old file [{$oldFile}] not exists.",
+            'data' => null,
+        ]);
+    }
+
+    if (!is_file($oldFilePath)) {
+        return responseJson([
+            'success' => false,
+            'error' => "Old file [{$oldFile}] is not a file.",
+            'data' => null,
+        ]);
+    }
+    $folderPath = dirname($oldFilePath);
+
+    $success = rename($oldFilePath, $folderPath.DIRECTORY_SEPARATOR.$newFile);
+
+    if (!$success) {
+        return responseJson([
+            'success' => false,
+            'error' => "Could not rename filename.",
+            'data' => null,
+        ]);
+    }
+    $fileInfo = getFileInfo($folderPath.DIRECTORY_SEPARATOR.$newFile);
+    return responseJson([
+        'success' => true,
+        'data' => array_merge(
+            $fileInfo,
+            [
+                'path' => dirname($oldFile).DIRECTORY_SEPARATOR.$newFile
+            ]
+        ),
+    ]);
 }
 
 return responseJson([

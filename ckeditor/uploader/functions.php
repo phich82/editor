@@ -1,5 +1,7 @@
 <?php
 
+define('HTTPS', isset($_SERVER['HTTPS']) && filter_var($_SERVER['HTTPS'], FILTER_VALIDATE_BOOLEAN));
+
 function dd($value) {
     echo '<pre>'.json_encode($value, JSON_PRETTY_PRINT).'</pre>';
     exit;
@@ -37,4 +39,33 @@ function scanDirectory($base_dir = '../uploader/storage', $level = 0) {
         }
     }
     return $directories;
+}
+
+function storagePath() {
+    $protocol = HTTPS ? 'https' : 'http';
+    return "{$protocol}://{$_SERVER['HTTP_HOST']}/ckeditor/uploader/storage";
+}
+
+function getFileInfo($path, $rootPath = '') {
+    $stat = stat($path);
+    $info = pathinfo($path);
+    $mime = finfo_file(finfo_open(FILEINFO_MIME_TYPE), $path);
+    $protocol = HTTPS ? 'https' : 'http';
+
+    if (preg_match("#^image\/.*#", $mime)) {
+        $rootPath = $rootPath ? rtrim($rootPath, '\\/') : "{$protocol}://{$_SERVER['HTTP_HOST']}/ckeditor/uploader";
+        $src = "{$rootPath}/".trim($path, './');
+    }
+
+    return [
+        'src'       => $src,
+        'size'      => format_filesize($stat['size']),
+        'accessed'  => date('Y-m-d H:i:s', $stat['atime']),
+        'modified'  => date('Y-m-d H:i:s', $stat['mtime']),
+        'created'   => date('Y-m-d H:i:s', $stat['ctime']),
+        'filename'  => $info['filename'],
+        'basename'  => $info['basename'],
+        'extension' => $info['extension'],
+        'mime'      => $mime,
+    ];
 }
