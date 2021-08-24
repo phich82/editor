@@ -2,14 +2,14 @@
     <div class="modal-dialog" role="document">
         <div class="modal-content rounded-0">
             <div class="modal-header p-1">
-                <h5 class="modal-title" id="modalLabel">Rename</h5>
+                <h5 class="modal-title" id="modalLabel">Confirmation</h5>
                 <button type="button" class="border-0 bg-transparent close" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
             <div class="modal-body">
                 <div class="form-group">
-                    <input type="text" class="form-control" name="folder" id="folder" aria-describedby="folderHelp" placeholder="Your folder name" />
+                    <div id="folder"></div>
                 </div>
                 <div class="mt-1 error_msg error hidden"></div>
             </div>
@@ -27,7 +27,11 @@
 
 <script>
     $(function () {
-        $('.wrap-modal-subfolder').find('#folder').focus();
+        // Add confirmation before deleting
+        var path = $('.wrap-modal-subfolder').data('path');
+        $('.wrap-modal-subfolder').find('#folder').html(`
+            <p style="text-align: center;">Are you sure to delete file <strong>${path}</strong>?</p>
+        `);
 
         $(document).find('.modal-subfolder').modal('toggle');
 
@@ -44,41 +48,16 @@
             e.preventDefault();
 
             let modal = $(this).closest('.modal-subfolder');
-            let folder = modal.find('input[name="folder"]').val().trim();
-
-            if (!folder) {
-                alert('You must enter a folder name!');
-                return;
-            }
-
-            var charsNotAllowed = /[<>:"\/\\|?*\x00-\x1F]|^(?:aux|con|clock\$|nul|prn|com[1-9]|lpt[1-9])$/i;
-            if (charsNotAllowed.test(folder)) {
-                alert('Folder name contains invalid characters!');
-                return;
-            }
-
-            let folderSelected = '';
-            let folderElementSelected = $('.sidebar').find('.folder-selected');
-
-            if (folderElementSelected.hasClass('folder-selected')) {
-                folderSelected = folderElementSelected.data('path');
-            }
-
-            if (!folderSelected) {
-                alert('Please select the parent folder before renaming folder!');
-                return;
-            }
 
             modal.find('.cancelok').hide();
             modal.find('.loader').show();
 
             let dataForm = new FormData();
-            dataForm.append('action', 'rename');
-            dataForm.append('old_folder', folderSelected);
-            dataForm.append('folder', folder);
+            dataForm.append('action', 'delete');
+            dataForm.append('file', path);
 
             $.ajax({
-                url: '../uploader/do_folder.php',
+                url: '../uploader/do_file.php',
                 method: 'POST',
                 data: dataForm,
                 dataType: 'json',
@@ -88,6 +67,10 @@
                 success: function(response, status, jqXHR) {
                     console.log('response => ', response)
                     if (response && response.success) {
+                        // Reload image area
+                        let selectedCurrentFolder = $('.folder-selected').attr('data-path');
+                        showImages(selectedCurrentFolder);
+                        // Hide modal
                         modal.modal('hide');
                     } else {
                         modal.find('.cancelok').show();

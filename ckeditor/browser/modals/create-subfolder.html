@@ -28,7 +28,10 @@
 
 <script>
     $(function () {
-        $('.wrap-modal-subfolder').find('#folder').focus();
+        // Focus to input
+        setTimeout(function() {
+            $('.wrap-modal-subfolder').find('#folder').focus();
+        }, 1000);
 
         $('.modal-subfolder').modal('toggle');
 

@@ -26,8 +26,19 @@
 </div><!-- /.Modal -->
 
 <script>
+    function loadDataOnInput(pathFolder) {
+        let input = $('.wrap-modal-subfolder').find('#folder');
+        input.val(getFileName(pathFolder));
+        // Focus after 1s
+        setTimeout(function() {
+            input.focus();
+        }, 1000);
+    }
+
     $(function () {
-        $('.wrap-modal-subfolder').find('#folder').focus();
+        var folderSelected = $('.wrap-modal-subfolder').data('path');
+        // Focus to input
+        loadDataOnInput(folderSelected);
 
         $(document).find('.modal-subfolder').modal('toggle');
 
@@ -57,15 +68,8 @@
                 return;
             }
 
-            let folderSelected = '';
-            let folderElementSelected = $('.sidebar').find('.folder-selected');
-
-            if (folderElementSelected.hasClass('folder-selected')) {
-                folderSelected = folderElementSelected.data('path');
-            }
-
             if (!folderSelected) {
-                alert('Please select the parent folder before renaming folder!');
+                alert('Please select the folder before renaming!');
                 return;
             }
 
@@ -88,6 +92,11 @@
                 success: function(response, status, jqXHR) {
                     console.log('response => ', response)
                     if (response && response.success) {
+                        // Update info of selected current folder
+                        $('.current-folder-selected').attr('data-path', response.data.path)
+                        $('.current-folder-selected').find('.folder span').html(response.data.name);
+                        $('.current-folder-selected').removeClass('current-folder-selected');
+                        // Hide modal
                         modal.modal('hide');
                     } else {
                         modal.find('.cancelok').show();

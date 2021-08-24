@@ -34,7 +34,7 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
         }
             $tab = $levelCurrent * 20;
 
-            $out .=    "<button class='btn border-top-0 border-secondary rounded-0 shadow-none w-sidebar context-menu-target' data-path='{$directory['path']}' data-ctx-item-type='folder'>";
+            $out .=    "<button class='btn border-top-0 border-secondary rounded-0 shadow-none w-sidebar context-menu-target' data-path='{$directory['path']}' data-level='{$directory['level']}' data-ctx-item-type='folder'>";
             $out .=        "<div class='row'>";
             $out .=            "<div class='col text-start folder' style='padding-left: {$tab}px;'>";
             $out .=                "<i class='bi bi-folder icon-folder'></i>\n";
@@ -42,7 +42,7 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
             $out .=            "</div>";
 
         if (!empty($directory['children'])) {
-            $out .=            "<div class='col-2'>";
+            $out .=            "<div class='col-2 has-children'>";
             $out .=                "<i class='bi bi-caret-right-fill icon-collapse' data-bs-toggle='collapse' data-bs-target='#".createId($directory['name'])."'></i>";
             $out .=            "</div>";
             $out .=        "</div>";
@@ -106,7 +106,7 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
                             <span><?php echo $directory['name']; ?></span>
                         </div>
                         <?php if (!empty($directory['children'])): ?>
-                        <div class="col-2">
+                        <div class="col-2 has-children">
                             <i class="bi bi-caret-right-fill icon-collapse"
                                data-bs-toggle="collapse"
                                data-bs-target="#<?php echo createId($directory['name']); ?>"
@@ -226,17 +226,35 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
         });
     }
 
-    function showSubfolderModal() {
+    function markCurrentFolderSelected(elementTarget) {
+        // Remove class 'current-folder-selected' of all previous elements
+        $(elementTarget)
+            .closest('.sidebar')
+            .find('.current-folder-selected')
+            .removeClass('current-folder-selected');
+        // Add class 'current-folder-selected' for current folder selected
+        $(elementTarget).addClass('current-folder-selected');
+    }
+
+    // TODO: Handle more after created subfolder
+    function showCreateSubfolderModal() {
         $('body').append('<div class="wrap-modal-subfolder" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; z-index: 2000;"></div>');
         $('body').find('.wrap-modal-subfolder').load('./modals/create-subfolder.html');
     }
 
-    function showRenameFolderModal() {
-        $('body').append('<div class="wrap-modal-subfolder" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; z-index: 2000;"></div>');
+    function showRenameFolderModal(elementTarget) {
+        // Mark the selected current folder
+        markCurrentFolderSelected(elementTarget);
+        // Add the selected dolder path to modal
+        let path = $(elementTarget).attr('data-path');
+        $('body').append(`<div class="wrap-modal-subfolder" data-path="${path}" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; z-index: 2000;"></div>`);
         $('body').find('.wrap-modal-subfolder').load('./modals/rename-folder.html');
     }
 
+    // TODO: Handle more after folder deleted
     function showDeleteFolderModal(elementTarget) {
+        // Mark the selected current folder
+        markCurrentFolderSelected(elementTarget);
         let folder = $(elementTarget).data('path');
         $('body').append(`<div class="wrap-modal-subfolder" data-folder="${folder}" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; z-index: 2000;"></div>`);
         $('body').find('.wrap-modal-subfolder').load('./modals/delete-folder.html');
@@ -246,6 +264,12 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
         let path = $(elementTarget).attr('data-path');
         $('body').append(`<div data-path="${path}" class="wrap-modal-subfolder" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; z-index: 2000;"></div>`);
         $('body').find('.wrap-modal-subfolder').load('./modals/rename-file.html');
+    }
+
+    function showDeleteFileModal(elementTarget) {
+        let path = $(elementTarget).attr('data-path');
+        $('body').append(`<div data-path="${path}" class="wrap-modal-subfolder" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; z-index: 2000;"></div>`);
+        $('body').find('.wrap-modal-subfolder').load('./modals/confirmation.html');
     }
 
     var configs = {
@@ -314,7 +338,7 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
         },
         actions: {
             'folder.subfolder': function (elementTarget, event) {
-                showSubfolderModal(elementTarget);
+                showCreateSubfolderModal(elementTarget);
             },
             'folder.rename': function (elementTarget, event) {
                 showRenameFolderModal(elementTarget);
@@ -352,9 +376,10 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
                 showRenameFileModal(elementTarget);
             },
             'image.delete': function (elementTarget, event) {
-                Service.Image.delete(function (success, data) {
+                showDeleteFileModal(elementTarget);
+                // Service.Image.delete(function (success, data) {
                     
-                });
+                // });
             }
         }
     };
@@ -390,9 +415,7 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
 
         // Subfolder (modal)
         $(document).on('click', '.subfolder', function () {
-            // $('body').append('<div class="wrap-modal-subfolder" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; z-index: 2000;"></div>');
-            // $('body').find('.wrap-modal-subfolder').load('./modals/subfolder.html');
-            showSubfolderModal();
+            showCreateSubfolderModal($('.folder-selected')[0]);
         })
 
         // Click on each image
@@ -493,7 +516,6 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
             });
         });
 
-        // $('.sidebar').on('click', 'button', function () {
         $('.sidebar').on('click', '.folder', function () {
             let buttonThis = $(this).closest('button');
 
@@ -516,31 +538,10 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
                 buttonThis.find('.icon-folder').removeClass('bi-folder').addClass('bi-folder2-open');
             }
 
-            let path = buttonThis.data('path');
+            let path = buttonThis.attr('data-path');
             if (path) {
-                console.log('path => ', path)
                 showImages(path);
             }
-
-
-            // // Remove previous selected folder
-            // $(this).closest('.sidebar').find('button').removeClass('folder-selected');
-            // // Highlight current selected folder
-            // $(this).addClass('folder-selected');
-
-            // // Change another folder icons when selecting a folder
-            // $(this).closest('.sidebar').find('button').each(function (idx, button) {
-            //     // If button (folder) has subfolders & in collapsed status, folder icon will be open
-            //     if (!$(button).hasClass('collapsed')) {
-            //         $(button).find('.icon-folder').removeClass('bi-folder2-open').addClass('bi-folder');
-            //     }
-            // });
-
-            // // Change icon of folder selected
-            // let hasSubfolder = !!$(this).find('.icon-collapse').data('bs-toggle');
-            // if (!hasSubfolder) {
-            //     $(this).find('.icon-folder').removeClass('bi-folder').addClass('bi-folder2-open');
-            // }
         });
 
         $('.sidebar').on('click', '.icon-collapse', function () {

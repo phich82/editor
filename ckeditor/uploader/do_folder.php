@@ -109,9 +109,15 @@ if ($action == 'rename') {
     }
 
     if (rename($pathOldFolder, $pathNewFolderName)) {
+        $newFolderPath = explode('/', $oldfolderRequest);
+        array_pop($newFolderPath);
+        $newFolderPath = implode('/', $newFolderPath);
         return responseJson([
             'success' => true,
-            'data' => $folderRequest,
+            'data' => [
+                'path' => $newFolderPath.DIRECTORY_SEPARATOR.$folderRequest,
+                'name' => $folderRequest,
+            ],
         ]);
     }
 

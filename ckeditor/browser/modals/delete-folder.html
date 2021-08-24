@@ -67,6 +67,13 @@
                 success: function(response, status, jqXHR) {
                     console.log('response => ', response)
                     if (response && response.success) {
+                        // TODO:
+                        // 1. Remove deleted folder from sidebar
+                        // 2. Check whether it has the parent folder?
+                        // 2.1 If has, then if parent folder has more 2 subfolders then keeping dropdown of it.
+                        // 2.2 Otherwise, remove dropdown from parent folder
+                        // 3. Clear all images shown corresponding to the slected folder for deleting
+                        // 4. Last, automatically click on parent folder
                         modal.modal('hide');
                     } else {
                         modal.find('.cancelok').show();

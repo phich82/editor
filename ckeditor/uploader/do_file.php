@@ -148,7 +148,9 @@ if ($action == 'rename') {
             'data' => null,
         ]);
     }
+
     $fileInfo = getFileInfo($folderPath.DIRECTORY_SEPARATOR.$newFile);
+
     return responseJson([
         'success' => true,
         'data' => array_merge(
@@ -157,6 +159,62 @@ if ($action == 'rename') {
                 'path' => dirname($oldFile).DIRECTORY_SEPARATOR.$newFile
             ]
         ),
+    ]);
+}
+
+// Delete file
+if ($action == 'delete') {
+    // Validation
+    if (!isset($_POST['file'])) {
+        return responseJson([
+            'success' => false,
+            'error' => 'Missing `file` key.',
+            'data' => null,
+        ]);
+    }
+
+    $pathFile = $_POST['file'];
+
+    if (empty($pathFile)) {
+        return responseJson([
+            'success' => false,
+            'error' => "File [$pathFile] is empty.",
+            'data' => null,
+        ]);
+    }
+
+    $pathFile = trim($pathFile, '\/\\');
+    $pathFile = './storage'.DIRECTORY_SEPARATOR.$pathFile;
+
+    if (!file_exists($pathFile)) {
+        return responseJson([
+            'success' => false,
+            'error' => "File [$pathFile] not exists.",
+            'data' => null,
+        ]);
+    }
+
+    if (!is_file($pathFile)) {
+        return responseJson([
+            'success' => false,
+            'error' => "File [$pathFile] is not a file.",
+            'data' => null,
+        ]);
+    }
+
+    $success = unlink($pathFile);
+
+    if (!$success) {
+        return responseJson([
+            'success' => false,
+            'error' => "Could not delete the file.",
+            'data' => null,
+        ]);
+    }
+
+    return responseJson([
+        'success' => true,
+        'data' => null,
     ]);
 }
 
