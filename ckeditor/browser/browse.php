@@ -226,50 +226,459 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
         });
     }
 
-    function markCurrentFolderSelected(elementTarget) {
+    function markCurrentFolderSelected(elementTarget, className) {
+        className = className || 'current-folder-selected';
         // Remove class 'current-folder-selected' of all previous elements
         $(elementTarget)
             .closest('.sidebar')
-            .find('.current-folder-selected')
-            .removeClass('current-folder-selected');
+            .find(`.${className}`)
+            .removeClass(className);
         // Add class 'current-folder-selected' for current folder selected
-        $(elementTarget).addClass('current-folder-selected');
+        $(elementTarget).addClass(className);
+        return className;
     }
 
     // TODO: Handle more after created subfolder
-    function showCreateSubfolderModal() {
-        $('body').append('<div class="wrap-modal-subfolder" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; z-index: 2000;"></div>');
-        $('body').find('.wrap-modal-subfolder').load('./modals/create-subfolder.html');
+    function showCreateSubfolderModal(elementTarget) {
+        // Mark the selected current folder
+        var selectedCurrentFolderClass = markCurrentFolderSelected(elementTarget);
+        // Selected folder
+        var folderSelected = $(elementTarget).attr('data-path');
+        // Create temporary DOM for loading modal
+        createWrapper(function (classNameWrap) {
+            $('body').find(`.${classNameWrap}`).load('./modals/newedit.html', function () {
+                $(function () {
+                    var modal = $(document).find('.modal-app');
+                    // Change modal title, input label & placeholder
+                    modal.find('.modal-title').html('New Name');
+                    modal.find('.modal-body .label-input').html('Type the new folder name:');
+                    modal.find('.modal-body .label-input').attr('placeholder', 'Your folder name');
+                    // Focus to input
+                    setTimeout(function() {
+                        modal.find('#input').focus();
+                    }, 1000);
+
+                    modal.modal('toggle');
+
+                    modal.on('click', '.close', function () {
+                        modal.modal('hide');
+                    });
+
+                    modal.on('hide.bs.modal', function (e) {
+                        $(`.${classNameWrap}`).remove();
+                    });
+
+                    modal.on('click', '.ok', function (e) {
+                        e.stopPropagation();
+                        e.preventDefault();
+
+                        let subfolder = modal.find('input[name="input"]').val().trim();
+
+                        if (!subfolder) {
+                            alert('You must enter a folder name!');
+                            return;
+                        }
+
+                        var charsNotAllowed = /[<>:"\/\\|?*\x00-\x1F]|^(?:aux|con|clock\$|nul|prn|com[1-9]|lpt[1-9])$/i;
+                        if (charsNotAllowed.test(subfolder)) {
+                            alert('Folder name contains invalid characters!');
+                            return;
+                        }
+
+                        if (!folderSelected) {
+                            alert('Please select the parent folder before creating subfolder!');
+                            return;
+                        }
+
+                        modal.find('.cancelok').hide();
+                        modal.find('.loader').show();
+
+                        let data = {action: 'create', folder: folderSelected + '/' + subfolder};
+
+                        $.ajax({
+                            url: '../uploader/do_folder.php',
+                            method: 'POST',
+                            data: data,
+                            dataType: 'json',
+                            contentType: 'application/x-www-form-urlencoded;charset=UTF-8',
+                            cache: false,
+                            success: function(response, status, jqXHR) {
+                                if (response && response.success) {
+                                    modal.modal('hide');
+                                } else {
+                                    modal.find('.cancelok').show();
+                                    modal.find('.error_msg').html(response.error).show();
+
+                                    hideAfter(modal.find('.error_msg'));
+                                }
+                                modal.find('.loader').hide();
+                            },
+                            error: function (jqXHR, textStatus, errorThrown) {
+                                modal.find('.cancelok').show();
+                                modal.find('.uploaderror').html(jqXHR.responseText);
+                                modal.find('.loader').hide();
+
+                                hideAfter(modal.find('.error_msg'));
+                                modal.find('.loader').hide();
+                            }
+                        });
+                    });
+                });
+            });
+        });
     }
 
     function showRenameFolderModal(elementTarget) {
         // Mark the selected current folder
-        markCurrentFolderSelected(elementTarget);
-        // Add the selected dolder path to modal
-        let path = $(elementTarget).attr('data-path');
-        $('body').append(`<div class="wrap-modal-subfolder" data-path="${path}" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; z-index: 2000;"></div>`);
-        $('body').find('.wrap-modal-subfolder').load('./modals/rename-folder.html');
+        var selectedCurrentFolderClass = markCurrentFolderSelected(elementTarget);
+        // Selected folder
+        var folderSelected = $(elementTarget).attr('data-path');
+        // Create temporary DOM for loading modal
+        createWrapper(function (classNameWrap) {
+            $('body').find(`.${classNameWrap}`).load('./modals/newedit.html', function () {
+                function loadDataOnInput(modal) {
+                    let input = modal.find('#input');
+                    input.val(getFileName(folderSelected));
+                    // Focus after 1s
+                    setTimeout(function() {
+                        input.focus();
+                    }, 1000);
+                }
+                $(function () {
+                    var modal = $(document).find('.modal-app');
+                    // Change modal title, input label & placeholder
+                    modal.find('.modal-title').html('Rename');
+                    modal.find('.modal-body .label-input').html('Type the new folder name:');
+                    modal.find('.modal-body .label-input').attr('placeholder', 'Your folder name');
+                    // Focus to input
+                    loadDataOnInput(modal);
+
+                    modal.modal('toggle');
+
+                    modal.on('click', '.close', function () {
+                        modal.modal('hide');
+                    });
+
+                    modal.on('hide.bs.modal', function (e) {
+                        $(`.${classNameWrap}`).remove();
+                    });
+
+                    modal.on('click', '.ok', function (e) {
+                        e.stopPropagation();
+                        e.preventDefault();
+
+                        let folder = modal.find('input[name="input"]').val().trim();
+
+                        if (!folder) {
+                            alert('You must enter a folder name!');
+                            return;
+                        }
+
+                        var charsNotAllowed = /[<>:"\/\\|?*\x00-\x1F]|^(?:aux|con|clock\$|nul|prn|com[1-9]|lpt[1-9])$/i;
+                        if (charsNotAllowed.test(folder)) {
+                            alert('Folder name contains invalid characters!');
+                            return;
+                        }
+
+                        if (!folderSelected) {
+                            alert('Please select the folder before renaming!');
+                            return;
+                        }
+
+                        modal.find('.cancelok').hide();
+                        modal.find('.loader').show();
+
+                        let data = {action: 'rename', old_folder: folderSelected, folder: folder};
+
+                        $.ajax({
+                            url: '../uploader/do_folder.php',
+                            method: 'POST',
+                            data: data,
+                            dataType: 'json',
+                            contentType: 'application/x-www-form-urlencoded;charset=UTF-8',
+                            cache: false,
+                            success: function(response, status, jqXHR) {
+                                if (response && response.success) {
+                                    // Update info of selected current folder
+                                    let selectedCurrentFolderElement = $(`.${selectedCurrentFolderClass}`);
+                                    selectedCurrentFolderElement.attr('data-path', response.data.path)
+                                    selectedCurrentFolderElement.find('.folder span').html(response.data.name);
+                                    selectedCurrentFolderElement.removeClass(selectedCurrentFolderClass);
+                                    // Hide modal
+                                    modal.modal('hide');
+                                } else {
+                                    modal.find('.cancelok').show();
+                                    modal.find('.error_msg').html(response.error).show();
+
+                                    hideAfter(modal.find('.error_msg'));
+                                }
+                                modal.find('.loader').hide();
+                            },
+                            error: function (jqXHR, textStatus, errorThrown) {
+                                modal.find('.cancelok').show();
+                                modal.find('.error_msg').html(jqXHR.responseText).show();
+                                hideAfter(modal.find('.error_msg'));
+                                modal.find('.loader').hide();
+                            }
+                        });
+                    });
+                });
+            });
+        });
     }
 
     // TODO: Handle more after folder deleted
     function showDeleteFolderModal(elementTarget) {
         // Mark the selected current folder
-        markCurrentFolderSelected(elementTarget);
-        let folder = $(elementTarget).data('path');
-        $('body').append(`<div class="wrap-modal-subfolder" data-folder="${folder}" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; z-index: 2000;"></div>`);
-        $('body').find('.wrap-modal-subfolder').load('./modals/delete-folder.html');
+        var selectedCurrentFolderClass = markCurrentFolderSelected(elementTarget);
+        var folderDeleted = $(elementTarget).data('path');
+        // Create temporary DOM for loading modal
+        createWrapper(function (classNameWrap) {
+            $('body').find(`.${classNameWrap}`).load('./modals/confirmation.html', function () {
+                $(function () {
+                    var modal = $(document).find('.modal-app');
+                    // Add confirmation before deleting
+                    modal.find('#message').html(`
+                        <p style="text-align: center;">Are you sure to delete folder <strong>${folderDeleted}</strong>?</p>
+                    `);
+
+                    modal.modal('toggle');
+
+                    modal.on('click', '.close', function () {
+                        modal.modal('hide');
+                    });
+
+                    modal.on('hide.bs.modal', function (e) {
+                        $(`.${classNameWrap}`).remove();
+                    });
+
+                    modal.on('click', '.ok', function (e) {
+                        e.stopPropagation();
+                        e.preventDefault();
+
+                        modal.find('.cancelok').hide();
+                        modal.find('.loader').show();
+
+                        let data = {action: 'delete', folder: folderDeleted};
+
+                        $.ajax({
+                            url: '../uploader/do_folder.php',
+                            method: 'POST',
+                            data: data,
+                            dataType: 'json',
+                            cache: false,
+                            contentType: 'application/x-www-form-urlencoded; charset=UTF-8',
+                            success: function(response, status, jqXHR) {
+                                if (response && response.success) {
+                                    // TODO:
+                                    // 1. Remove deleted folder from sidebar
+                                    // 2. Check whether it has the parent folder?
+                                    // 2.1 If has, then if parent folder has more 2 subfolders then keeping dropdown of it.
+                                    // 2.2 Otherwise, remove dropdown from parent folder
+                                    // 3. Clear all images shown corresponding to the slected folder for deleting
+                                    // 4. Last, automatically click on parent folder
+                                    modal.modal('hide');
+                                } else {
+                                    modal.find('.cancelok').show();
+                                    modal.find('.error_msg').html(response.error).show();
+
+                                    hideAfter(modal.find('.error_msg'));
+                                }
+                                modal.find('.loader').hide();
+                            },
+                            error: function (jqXHR, textStatus, errorThrown) {
+                                modal.find('.cancelok').show();
+                                modal.find('.error_msg').html(jqXHR.responseText).show();
+
+                                hideAfter(modal.find('.error_msg'));
+                                modal.find('.loader').hide();
+                            }
+                        });
+                    });
+                });
+            });
+        });
     }
 
     function showRenameFileModal(elementTarget) {
-        let path = $(elementTarget).attr('data-path');
-        $('body').append(`<div data-path="${path}" class="wrap-modal-subfolder" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; z-index: 2000;"></div>`);
-        $('body').find('.wrap-modal-subfolder').load('./modals/rename-file.html');
+        let oldFile = $(elementTarget).attr('data-path');
+        // Create temporary DOM for loading modal
+        createWrapper(function (classNameWrap) {
+            $('body').find(`.${classNameWrap}`).load('./modals/newedit.html', function () {
+                function loadDataOnInput(modal) {
+                    let input = modal.find('#input');
+                    input.val(getFileName(oldFile));
+                    // Focus after 1s
+                    setTimeout(function() {
+                        input.focus();
+                    }, 1000);
+                }
+                $(function () {
+                    var modal = $(document).find('.modal-app');
+
+                    // Change title, input label & placeholder
+                    modal.find('.modal-title').html('Rename');
+                    modal.find('.modal-body .label-input').html('Type the new file name:');
+                    modal.find('.modal-body #input').attr('placeholder', 'Enter your filename');
+
+                    loadDataOnInput(modal);
+
+                    modal.modal('toggle');
+
+                    modal.on('click', '.close', function (e) {
+                        modal.modal('hide');
+                    });
+
+                    modal.on('hide.bs.modal', function (e) {
+                        $(`.${classNameWrap}`).remove();
+                    });
+
+                    modal.on('click', '.ok', function (e) {
+                        e.stopPropagation();
+                        e.preventDefault();
+
+                        let newFile = modal.find('input[name="input"]').val().trim();
+
+                        // Validate: filename is empty
+                        if (!newFile) {
+                            alert('You must enter a filename!');
+                            return;
+                        }
+                        // Validate: filename contains invalid characters
+                        var charsNotAllowed = /[<>:"\/\\|?*\x00-\x1F]|^(?:aux|con|clock\$|nul|prn|com[1-9]|lpt[1-9])$/i;
+                        if (charsNotAllowed.test(newFile)) {
+                            alert('Filename contains invalid characters!');
+                            return;
+                        }
+
+                        modal.find('.cancelok').hide();
+                        modal.find('.loader').show();
+
+                        let data = {
+                            action: 'rename',
+                            old_file: oldFile,
+                            new_file: newFile
+                        };
+
+                        $.ajax({
+                            url: '../uploader/do_file.php',
+                            method: 'POST',
+                            data: data,
+                            cache: false,
+                            dataType: 'json',
+                            contentType: 'application/x-www-form-urlencoded; charset=UTF-8',
+                            success: function(response, status, jqXHR) {
+                                console.log('response => ', response)
+                                if (response && response.success) {
+                                    let data = response.data;
+                                    let imageSelected = $('.images').find('.image-selected');
+                                    // Update information of image selected
+                                    imageSelected.attr('data-path', data.path);
+                                    imageSelected.attr('data-mime', data.mime);
+                                    imageSelected.find('img').attr('src', data.src);
+                                    imageSelected.find('img').attr('alt', data.filename);
+                                    imageSelected.find('.fname').html(data.basename);
+                                    imageSelected.find('.fmodified').html(data.modified);
+                                    imageSelected.find('.fsize').html(data.size);
+                                    // Hide modal
+                                    modal.modal('hide');
+                                } else {
+                                    modal.find('.cancelok').show();
+                                    modal.find('.error_msg').html(response.error).show();
+
+                                    hideAfter(modal.find('.error_msg'));
+                                }
+                                modal.find('.loader').hide();
+                            },
+                            error: function (jqXHR, textStatus, errorThrown) {
+                                modal.find('.cancelok').show();
+                                modal.find('.error_msg').html(jqXHR.responseText).show();
+
+                                hideAfter(modal.find('.error_msg'));
+                                modal.find('.loader').hide();
+                            }
+                        });
+                    });
+                });
+            });
+        });
     }
 
+    // TODO: Handle more when folder has subfolders
     function showDeleteFileModal(elementTarget) {
         let path = $(elementTarget).attr('data-path');
-        $('body').append(`<div data-path="${path}" class="wrap-modal-subfolder" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; z-index: 2000;"></div>`);
-        $('body').find('.wrap-modal-subfolder').load('./modals/confirmation.html');
+        // Add temporary DOM for loading modal
+        createWrapper(function (classNameWrap) {
+            // Load confirmation template
+            $('body').find(`.${classNameWrap}`).load('./modals/confirmation.html', function () {
+                // Handle next after template loaded
+                $(function () {
+                    var modal = $(document).find('.modal-app');
+                    // Add confirmation before deleting
+                    modal.find('#message').html(`
+                        <p style="text-align: center;">Are you sure to delete file <strong>${path}</strong>?</p>
+                    `);
+                    // Change Text for Save button
+                    modal.find('.ok').html('OK');
+                    // Show modal
+                    modal.modal('toggle');
+                    // Hide modal when click on close button
+                    $(document).on('click', '.modal-app .close', function () {
+                        modal.modal('hide');
+                    });
+                    // Delete DOM
+                    modal.on('hide.bs.modal', function (e) {
+                        $(`.${classNameWrap}`).remove();
+                    });
+                    // Click on OK button
+                    modal.on('click', '.ok', function (e) {
+                        e.stopPropagation();
+                        e.preventDefault();
+
+                        modal.find('.cancelok').hide();
+                        modal.find('.loader').show();
+
+                        let data = {action: 'delete', file: path};
+
+                        $.ajax({
+                            url: '../uploader/do_file.php',
+                            method: 'POST',
+                            data: data,
+                            cache: false,
+                            dataType: 'json',
+                            contentType: 'application/x-www-form-urlencoded; charset=UTF-8',
+
+                            // data: JSON.stringify(data), // server => parse body (json string) to array
+                            // contentType: 'application/json;charset=utf-8',
+
+                            // data: new FormData(),
+                            // contentType: false, // data = new FormData()
+                            // processData: false,
+                            success: function(response, status, jqXHR) {
+                                if (response && response.success) {
+                                    // Reload image area
+                                    let selectedCurrentFolder = $('.folder-selected').attr('data-path');
+                                    showImages(selectedCurrentFolder);
+                                    // Hide modal
+                                    modal.modal('hide');
+                                } else {
+                                    modal.find('.cancelok').show();
+                                    modal.find('.error_msg').html(response.error).show();
+                                    hideAfter(modal.find('.error_msg'));
+                                }
+                                modal.find('.loader').hide();
+                            },
+                            error: function (jqXHR, textStatus, errorThrown) {
+                                modal.find('.cancelok').show();
+                                modal.find('.error_msg').html(jqXHR.responseText).show();
+                                hideAfter(modal.find('.error_msg'));
+                                modal.find('.loader').hide();
+                            }
+                        });
+                    });
+                });
+            });
+        });
     }
 
     var configs = {
@@ -372,14 +781,10 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
                 });
             },
             'image.rename': function (elementTarget, event) {
-                console.log('[rename] elementTarget => ', elementTarget);
                 showRenameFileModal(elementTarget);
             },
             'image.delete': function (elementTarget, event) {
                 showDeleteFileModal(elementTarget);
-                // Service.Image.delete(function (success, data) {
-                    
-                // });
             }
         }
     };

@@ -78,3 +78,14 @@ function getFileName(path) {
     }
     return path.split('/').pop();
 }
+
+function createWrapper(callback, className) {
+    callback = typeof callback === 'function' ? callback : function () {};
+    className = className || 'wrap-modal-app';
+    $('body').append(`
+        <div class="wrap-modal-app"
+             style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; z-index: 2000;"
+        ></div>
+    `);
+    callback(className);
+}

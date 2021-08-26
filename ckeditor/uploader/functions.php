@@ -69,3 +69,13 @@ function getFileInfo($path, $rootPath = '') {
         'mime'      => $mime,
     ];
 }
+
+function getExtensionFromUrl($url) {
+    $url = str_replace('\\', '/', $url);
+    $url = explode('/', $url);
+    $extension = explode('.', array_pop($url));
+    if (count($extension) > 1) {
+        return array_pop($extension);
+    }
+    return false;
+}

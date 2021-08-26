@@ -139,6 +139,21 @@ if ($action == 'rename') {
     }
     $folderPath = dirname($oldFilePath);
 
+    // Validate extension of image files (if new image file has not extension, getting extension of old image file)
+    $extNewFile = getExtensionFromUrl($newFile);
+    if ($extNewFile === false) {
+        $extOldFile = getExtensionFromUrl($oldFilePath);
+
+        if ($extOldFile === false) {
+            return responseJson([
+                'success' => false,
+                'error' => "File format [{$oldFile}] could not be determined.",
+                'data' => null,
+            ]);
+        }
+        $newFile .= ".{$extOldFile}";
+    }
+
     $success = rename($oldFilePath, $folderPath.DIRECTORY_SEPARATOR.$newFile);
 
     if (!$success) {

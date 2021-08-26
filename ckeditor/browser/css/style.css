@@ -132,7 +132,7 @@
     background-color: #04883c;
 }
 
-.modal-subfolder {
+.modal-subfolder, .modal-app {
     position: absolute;
     top: 0;
     left: 0;
