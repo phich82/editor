@@ -682,14 +682,13 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
     }
 
     function showImageViewModal(elementTarget) {
-        $srcImgSelected = $(elementTarget).find('img').attr('src');
+        var selectedCurrentFolder = $('.sidebar .folder-selected').attr('data-path');
+        var srcImgSelected = $(elementTarget).find('img').attr('src');
 
         load('./modals/slideshow.html', function (classNameWrap) {
             $(function () {
                 var modal = $(document).find('.modal-app');
-
-                var slideshow = modal.find('.slideshow-container');
-                slideshow.find('img').attr('src', $srcImgSelected);
+                var slideIndex = 1;
 
                 modal.modal('toggle');
 
@@ -697,9 +696,68 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
                     modal.modal('hide');
                 });
 
+                // Click PREV button
+                modal.on('click', '.prev', function (e) {
+                    goToSlide(-1);
+                });
+
+                // Click NEXT button
+                modal.on('click', '.next', function (e) {
+                    goToSlide(1);
+                });
+
                 modal.on('hide.bs.modal', function (e) {
                     $(`.${classNameWrap}`).remove();
                 });
+
+                // Show the image slides after modal shown
+                modal.on('shown.bs.modal', function (e) {
+                    // Get images by folder
+                    $.ajax({
+                        url: '../uploader/do_file.php',
+                        method: 'POST',
+                        data: { path: selectedCurrentFolder, action: 'read' },
+                        dataType: 'json',
+                        success: function (response) {
+                            if (response && response.success) {
+                                let out = '';
+                                response.data.forEach(function (info, idx) {
+                                    // Image selected will be shown
+                                    if (info.src == srcImgSelected) {
+                                        slideIndex = idx + 1;
+                                    }
+                                    out += `<div class="slide${ info.src != srcImgSelected ? ' faded' : ''}">
+                                                <img src="${info.src}">
+                                            </div>`;
+                                });
+                                modal.find('.slides').html(out);
+                                // Show image selected
+                                showSlides(slideIndex);
+                            }
+                        },
+                        error: function (jqXHR, textStatus, errorThrown) {
+                            alert(jqXHR.responseText);
+                            modal.modal('hide');
+                        }
+                    });
+                });
+
+                // Next/previous controls
+                function goToSlide(n) {
+                    showSlides(slideIndex += n);
+                }
+                // Show current slide
+                function showSlides(n) {
+                    var slides = modal.find('.slide');
+                    if (n > slides.length) {slideIndex = 1}
+                    if (n < 1) {slideIndex = slides.length}
+                    // Hide all previous slides
+                    for (let i = 0; i < slides.length; i++) {
+                        slides[i].style.display = 'none';
+                    }
+                    // Show current slide
+                    slides[slideIndex - 1].style.display = 'block';
+                }
             });
         });
     }
