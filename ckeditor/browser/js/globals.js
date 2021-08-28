@@ -89,3 +89,11 @@ function createWrapper(callback, className) {
     `);
     callback(className);
 }
+
+function load(pathFile, callback, classNameWrap) {
+    createWrapper(function (_classNameWrap) {
+        $('body').find(`.${_classNameWrap}`).load(pathFile, function () {
+            callback(_classNameWrap);
+        });
+    }, classNameWrap);
+}

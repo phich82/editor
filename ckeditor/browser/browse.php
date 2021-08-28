@@ -681,6 +681,29 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
         });
     }
 
+    function showImageViewModal(elementTarget) {
+        $srcImgSelected = $(elementTarget).find('img').attr('src');
+
+        load('./modals/slideshow.html', function (classNameWrap) {
+            $(function () {
+                var modal = $(document).find('.modal-app');
+
+                var slideshow = modal.find('.slideshow-container');
+                slideshow.find('img').attr('src', $srcImgSelected);
+
+                modal.modal('toggle');
+
+                modal.on('click', '.close', function (e) {
+                    modal.modal('hide');
+                });
+
+                modal.on('hide.bs.modal', function (e) {
+                    $(`.${classNameWrap}`).remove();
+                });
+            });
+        });
+    }
+
     var configs = {
         selectorTarget: '.context-menu-target',
         selectorContext: '#context-menu-folder',
@@ -767,9 +790,10 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
                 }
             },
             'image.view': function (elementTarget, event) {
-                Service.Image.view(function (success, data) {
+                showImageViewModal(elementTarget);
+                // Service.Image.view(function (success, data) {
                     
-                });
+                // });
             },
             'image.download': function (elementTarget, event) {
                 let url = $(elementTarget).find('img').attr('src');
