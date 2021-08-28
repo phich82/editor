@@ -1,0 +1,220 @@
+<style>
+/* .ui-slider .ui-slider-handle {
+    left: -.6em;
+    text-decoration: none;
+    text-align: center;
+} */
+/* .ui-slider-horizontal {
+  width: 100%;
+  height: 2.4px;
+  cursor: pointer;
+  box-shadow: 1px 1px 1px #000000, 0px 0px 1px #0d0d0d;
+  background: #3071a9;
+  border-radius: 25px;
+  border: 0.2px solid #010101;
+}
+.ui-slider-handle {
+  box-shadow: 1px 1px 1px #000000, 0px 0px 1px #0d0d0d !important;
+  border: 0px solid #000000 !important;
+  height: 50px !important;
+  width: 50px !important;
+  border-radius: 50px;
+  background: #ffffff !important;
+  cursor: pointer;
+  -webkit-appearance: none;
+  margin-top: -21px;
+} */
+
+.ui-slider {
+    height: 4px;
+    position: relative;
+    border: none;
+    background: #ff5b63;
+}
+.ui-state-default, .ui-widget-content .ui-state-default, .ui-widget-header .ui-state-default {
+    background: #ff5b63;
+    border-radius: 50px;
+    outline: none;
+    border: 2px solid #fff;
+    position: absolute;
+    /* top: -10px; */
+}
+.ui-slider-horizontal .ui-slider-range {
+    background: #e9ecf1
+}
+</style>
+<div class="modal-app fade modal-common" id="modal" tabindex="-1" role="dialog" aria-labelledby="modalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-fullscreen" role="document">
+        <div class="modal-content rounded-0">
+            <div class="modal-header p-1">
+                <!-- Exit button -->
+                <div>
+                    <button type="button" class="border-0 bg-transparent close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true"><i class="bi bi-box-arrow-left"></i></span> 
+                        <span style="margin-left: 10px;">image.png</span>
+                    </button>
+                </div>
+                <!-- Save, reset button -->
+                <div>
+                    <button class="btn btn-outline-secondary btn-sm save">
+                        <i class="bi bi-file-post-fill"></i> Save
+                    </button>
+                    <button class="btn btn-outline-secondary btn-sm disabled reset">
+                        <i class="bi bi-arrow-repeat"></i> Reset
+                    </button>
+                </div>
+            </div>
+            <div class="modal-body">
+                <div class="row" style="height: 100%;">
+                    <div class="col-3">
+                        <div class="accordion" id="imageProcessor">
+                            <!-- Resize -->
+                            <div class="accordion-item rounded-0">
+                                <h2 class="accordion-header" id="headingResize">
+                                    <button class="accordion-button shadow-none collapsed" data-bs-toggle="collapse" data-bs-target="#collapseResize" aria-expanded="false" aria-controls="collapseResize">
+                                        <span><i class="bi bi-fullscreen"></i> Resize</span>
+                                    </button>
+                                </h2>
+                                <div id="collapseResize" class="accordion-collapse collapse" aria-labelledby="headingResize" data-bs-parent="#imageProcessor">
+                                    <div class="accordion-body">
+                                        <div class="input-group mb-3">
+                                            <input type="text" name="resize-w" class="form-control" />
+                                            <span class="input-group-text">x</span>
+                                            <input type="text" name="resize-h" class="form-control" />
+                                            <span class="input-group-text">px</span>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="resize-keep-ratio" id="resize-keep-ratio" checked>
+                                            <label class="form-check-label" for="resize-keep-ratio">
+                                                Keep Aspext Ratio
+                                            </label>
+                                        </div>
+                                        <div class="d-grid">
+                                            <button type="button" class="btn btn-secondary shadow-none apply-resize">
+                                                Apply
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- Crop -->
+                            <div class="accordion-item">
+                                <h2 class="accordion-header" id="headingCrop">
+                                    <button class="accordion-button shadow-none collapsed" data-bs-toggle="collapse" data-bs-target="#collapseCrop" aria-expanded="false">
+                                        <span><i class="bi bi-crop"></i> Crop</span>
+                                    </button>
+                                </h2>
+                                <div id="collapseCrop" class="accordion-collapse collapse" aria-labelledby="headingCrop" data-bs-parent="#imageProcessor">
+                                    <div class="accordion-body">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="crop-keep-ratio" id="crop-keep-ratio" checked>
+                                            <label class="form-check-label" for="crop-keep-ratio">
+                                                Keep Aspext Ratio
+                                            </label>
+                                        </div>
+                                        <div class="d-grid">
+                                            <button type="button" class="btn btn-secondary shadow-none apply-crop">
+                                                Apply
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- Rotate -->
+                            <div class="accordion-item">
+                                <h2 class="accordion-header" id="headingRotate">
+                                    <button class="accordion-button shadow-none collapsed" data-bs-toggle="collapse" data-bs-target="#collapseRotate" aria-expanded="false" aria-controls="collapseRotate">
+                                        <span><i class="bi bi-arrow-counterclockwise"></i> Rotate</span>
+                                    </button>
+                                </h2>
+                                <div id="collapseRotate" class="accordion-collapse collapse" aria-labelledby="headingRotate" data-bs-parent="#imageProcessor">
+                                    <div class="accordion-body">
+                                        <div class="d-grid">
+                                            <button type="button" class="btn btn-outline-secondary shadow-none text-start mb-2 apply-90-left">
+                                                <i class="bi bi-arrow-counterclockwise"></i> 90<sup>0</sup> Left
+                                            </button>
+                                        </div>
+                                        <div class="d-grid">
+                                            <button type="button" class="btn btn-outline-secondary shadow-none text-start apply-90-right">
+                                                <i class="bi bi-arrow-clockwise"></i> 90<sup>0</sup> Right
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- Adjust -->
+                            <div class="accordion-item">
+                                <h2 class="accordion-header" id="headingAdjust">
+                                    <button class="accordion-button shadow-none collapsed" data-bs-toggle="collapse" data-bs-target="#collapseAdjust" aria-expanded="false" aria-controls="collapseAdjust">
+                                        <span><i class="bi bi-record-circle"></i> Adjust</span>
+                                    </button>
+                                </h2>
+                                <div id="collapseAdjust" class="accordion-collapse collapse" aria-labelledby="headingAdjust" data-bs-parent="#imageProcessor">
+                                    <div class="accordion-body">
+                                        <div class="mb-3">
+                                            <label for="exampleFormControlInput1" class="form-label">Brightness</label>
+                                            <div class="input-group mb-3">
+                                                <!-- <div class="btn-toolbar justify-content-between" role="toolbar" aria-label="Toolbar with button groups"> -->
+                                                    <!-- <div class="btn-group" role="group" aria-label="First group">
+                                                      <input type="text" name="slider-brightness" class="" />
+                                                    </div> -->
+                                                    <div class="" style="width: 100%;">
+                                                        <div id="slider-brightness"></div>
+                                                    </div>
+                                                <!-- </div> -->
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- Presets -->
+                            <div class="accordion-item rounded-0">
+                                <h2 class="accordion-header" id="headingPresets">
+                                    <button class="accordion-button shadow-none collapsed" data-bs-toggle="collapse" data-bs-target="#collapsePresets" aria-expanded="false" aria-controls="collapsePresets">
+                                        <span><i class="bi bi-file-earmark-plus-fill"></i> Presets</span>
+                                    </button>
+                                </h2>
+                                <div id="collapsePresets" class="accordion-collapse collapse" aria-labelledby="headingPresets" data-bs-parent="#imageProcessor">
+                                    <div class="accordion-body">
+                                        
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Image area -->
+                    <div class="col-9">
+                        <div class="image" style="background-color: #333333; height:100%;">
+                            
+                        </div>
+                    </div>
+                </div>
+                <!-- <div class="mt-1 error_msg error hidden"></div> -->
+            </div>
+            <!-- Show processing status -->
+            <div class="loader" style="display: none;"></div>
+        </div>
+    </div>
+</div>
+<script>
+    $(function() {
+        $("#slider-brightness").slider({
+            //orientation: "vertical",
+            range: "min",
+            animate: true,
+            min: -100,
+            max: 100,
+            step: 1,
+            value: 0,
+            slide: function( event, ui ) {
+                // $( "#amount" ).val( ui.value );
+                $(this).find('.ui-slider-handle').text(ui.value);
+            },
+            create: function(event, ui) {
+                var v = $(this).slider('value');
+                $(this).find('.ui-slider-handle').text(v);
+            }
+        });
+    });
+</script>
