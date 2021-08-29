@@ -1,57 +1,45 @@
 <style>
-/* .ui-slider .ui-slider-handle {
-    left: -.6em;
-    text-decoration: none;
-    text-align: center;
-} */
-/* .ui-slider-horizontal {
-  width: 100%;
-  height: 2.4px;
-  cursor: pointer;
-  box-shadow: 1px 1px 1px #000000, 0px 0px 1px #0d0d0d;
-  background: #3071a9;
-  border-radius: 25px;
-  border: 0.2px solid #010101;
-}
-.ui-slider-handle {
-  box-shadow: 1px 1px 1px #000000, 0px 0px 1px #0d0d0d !important;
-  border: 0px solid #000000 !important;
-  height: 50px !important;
-  width: 50px !important;
-  border-radius: 50px;
-  background: #ffffff !important;
-  cursor: pointer;
-  -webkit-appearance: none;
-  margin-top: -21px;
-} */
-
 .ui-slider {
-    height: 4px;
     position: relative;
+    height: 4px;
     border: none;
-    background: #ff5b63;
 }
-.ui-state-default, .ui-widget-content .ui-state-default, .ui-widget-header .ui-state-default {
-    background: #ff5b63;
+/* Slider seed */
+.ui-slider .ui-slider-handle {
+    position: absolute;
+    width: 2.5em !important;
+    cursor: pointer;
+    height: 1.5em;
+    line-height: 1.5em;
+}
+/* Slider seed content */
+.ui-state-default,
+.ui-widget-content .ui-state-default,
+.ui-widget-header .ui-state-default {
+    background: #154cff;
+    color: #ffffff;
     border-radius: 50px;
     outline: none;
-    border: 2px solid #fff;
+    border: none;
     position: absolute;
-    /* top: -10px; */
+    top: -8px;
+    text-align: center;
+    margin-left: -1.25em;
 }
+/* Slider range */
 .ui-slider-horizontal .ui-slider-range {
-    background: #e9ecf1
+    background: #cdced1
 }
 </style>
 <div class="modal-app fade modal-common" id="modal" tabindex="-1" role="dialog" aria-labelledby="modalLabel" aria-hidden="true">
     <div class="modal-dialog modal-fullscreen" role="document">
         <div class="modal-content rounded-0">
-            <div class="modal-header p-1">
+            <div class="modal-header ps-2 pe-3">
                 <!-- Exit button -->
                 <div>
                     <button type="button" class="border-0 bg-transparent close" data-dismiss="modal" aria-label="Close">
                         <span aria-hidden="true"><i class="bi bi-box-arrow-left"></i></span> 
-                        <span style="margin-left: 10px;">image.png</span>
+                        <span class="image-name" style="margin-left: 10px;"></span>
                     </button>
                 </div>
                 <!-- Save, reset button -->
@@ -66,6 +54,7 @@
             </div>
             <div class="modal-body">
                 <div class="row" style="height: 100%;">
+                    <!-- Basic tools -->
                     <div class="col-3">
                         <div class="accordion" id="imageProcessor">
                             <!-- Resize -->
@@ -130,12 +119,12 @@
                                 <div id="collapseRotate" class="accordion-collapse collapse" aria-labelledby="headingRotate" data-bs-parent="#imageProcessor">
                                     <div class="accordion-body">
                                         <div class="d-grid">
-                                            <button type="button" class="btn btn-outline-secondary shadow-none text-start mb-2 apply-90-left">
+                                            <button type="button" class="btn btn-outline-secondary shadow-none text-start mb-2 apply-counterclockwise">
                                                 <i class="bi bi-arrow-counterclockwise"></i> 90<sup>0</sup> Left
                                             </button>
                                         </div>
                                         <div class="d-grid">
-                                            <button type="button" class="btn btn-outline-secondary shadow-none text-start apply-90-right">
+                                            <button type="button" class="btn btn-outline-secondary shadow-none text-start apply-clockwise">
                                                 <i class="bi bi-arrow-clockwise"></i> 90<sup>0</sup> Right
                                             </button>
                                         </div>
@@ -152,16 +141,51 @@
                                 <div id="collapseAdjust" class="accordion-collapse collapse" aria-labelledby="headingAdjust" data-bs-parent="#imageProcessor">
                                     <div class="accordion-body">
                                         <div class="mb-3">
-                                            <label for="exampleFormControlInput1" class="form-label">Brightness</label>
+                                            <label class="form-label">Brightness</label>
                                             <div class="input-group mb-3">
-                                                <!-- <div class="btn-toolbar justify-content-between" role="toolbar" aria-label="Toolbar with button groups"> -->
-                                                    <!-- <div class="btn-group" role="group" aria-label="First group">
-                                                      <input type="text" name="slider-brightness" class="" />
-                                                    </div> -->
-                                                    <div class="" style="width: 100%;">
-                                                        <div id="slider-brightness"></div>
-                                                    </div>
-                                                <!-- </div> -->
+                                                <div class="" style="width: 100%;">
+                                                    <div id="slider-brightness"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Contrast</label>
+                                            <div class="input-group mb-3">
+                                                <div class="" style="width: 100%;">
+                                                    <div id="slider-contrast"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Saturation</label>
+                                            <div class="input-group mb-3">
+                                                <div class="" style="width: 100%;">
+                                                    <div id="slider-saturation"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Exposure</label>
+                                            <div class="input-group mb-3">
+                                                <div class="" style="width: 100%;">
+                                                    <div id="slider-exposure"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Sepia</label>
+                                            <div class="input-group mb-3">
+                                                <div class="" style="width: 100%;">
+                                                    <div id="slider-sepia"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Sharpen</label>
+                                            <div class="input-group mb-3">
+                                                <div class="" style="width: 100%;">
+                                                    <div id="slider-sharpen"></div>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
@@ -176,17 +200,77 @@
                                 </h2>
                                 <div id="collapsePresets" class="accordion-collapse collapse" aria-labelledby="headingPresets" data-bs-parent="#imageProcessor">
                                     <div class="accordion-body">
-                                        
+                                        <div class="p-4 mb-4" style="background-color: #f6f8fa;">
+                                            <div class="card">
+                                                <img src="https://i.postimg.cc/528s2Kcz/tent.png" class="card-img-top" alt="Image" height="100px" width="150px">
+                                                <div class="card-body p-2">
+                                                    <p class="card-text text-center">
+                                                        Clarity
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="p-4 mb-4" style="background-color: #f6f8fa;">
+                                            <div class="card">
+                                                <img src="https://i.postimg.cc/528s2Kcz/tent.png" class="card-img-top" alt="Image" height="100px" width="150px">
+                                                <div class="card-body p-2">
+                                                    <p class="card-text text-center">
+                                                        Her Majesty
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="p-4 mb-4" style="background-color: #f6f8fa;">
+                                            <div class="card">
+                                                <img src="https://i.postimg.cc/528s2Kcz/tent.png" class="card-img-top" alt="Image" height="100px" width="150px">
+                                                <div class="card-body p-2">
+                                                    <p class="card-text text-center">
+                                                        Nostalgia
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="p-4 mb-4" style="background-color: #f6f8fa;">
+                                            <div class="card">
+                                                <img src="https://i.postimg.cc/528s2Kcz/tent.png" class="card-img-top" alt="Image" height="100px" width="150px">
+                                                <div class="card-body p-2">
+                                                    <p class="card-text text-center">
+                                                        Pinhole
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="p-4 mb-4" style="background-color: #f6f8fa;">
+                                            <div class="card">
+                                                <img src="https://i.postimg.cc/528s2Kcz/tent.png" class="card-img-top" alt="Image" height="100px" width="150px">
+                                                <div class="card-body p-2">
+                                                    <p class="card-text text-center">
+                                                        Sunrise
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="p-4" style="background-color: #f6f8fa;">
+                                            <div class="card">
+                                                <img src="https://i.postimg.cc/528s2Kcz/tent.png" class="card-img-top" alt="Image" height="100px" width="150px">
+                                                <div class="card-body p-2">
+                                                    <p class="card-text text-center">
+                                                        Vintage
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-
                     <!-- Image area -->
-                    <div class="col-9">
-                        <div class="image" style="background-color: #333333; height:100%;">
-                            
+                    <div class="col-9 ps-0">
+                        <div class="image" style="background-color: #333333; height: 500px;">
+                            <canvas id="canvas" class="centered-relative">
+                                Your browser does not support the canvas tag.
+                            </canvas>
                         </div>
                     </div>
                 </div>
@@ -197,24 +281,3 @@
         </div>
     </div>
 </div>
-<script>
-    $(function() {
-        $("#slider-brightness").slider({
-            //orientation: "vertical",
-            range: "min",
-            animate: true,
-            min: -100,
-            max: 100,
-            step: 1,
-            value: 0,
-            slide: function( event, ui ) {
-                // $( "#amount" ).val( ui.value );
-                $(this).find('.ui-slider-handle').text(ui.value);
-            },
-            create: function(event, ui) {
-                var v = $(this).slider('value');
-                $(this).find('.ui-slider-handle').text(v);
-            }
-        });
-    });
-</script>

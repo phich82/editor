@@ -766,9 +766,23 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
     }
 
     function showImageProcessorModal(elementTarget) {
+        var pathImageSelected = $(elementTarget).attr('data-path');
+        var srcImageSelected = $(elementTarget).find('img').attr('src');
+
         load('./modals/image-processor.html', function (classNameWrap) {
             $(function () {
                 var modal = $(document).find('.modal-app');
+                var isLoadedImage = false;
+                var canvas, ctx;
+                var degrees = 0;
+                var curImgHeight = 0;
+                var curImgWidth = 0;
+                var img = new Image();
+                img.crossOrigin = "Anonymous";
+                img.src = srcImageSelected;
+
+                // Set image name
+                modal.find('.modal-header .image-name').text(getFileName(pathImageSelected));
 
                 modal.modal('toggle');
 
@@ -779,6 +793,115 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
                 modal.on('hide.bs.modal', function (e) {
                     $(`.${classNameWrap}`).remove();
                 });
+
+                // Handle image after modal shown
+                modal.on('shown.bs.modal', function (e) {
+                    var MIN_VALUE_ADJUST = -100;
+                    var MAX_VALUE_ADJUST = 100;
+                    var DEF_VALUE_ADJUST = 0;
+                    // Show silder bars
+                    [
+                        '#slider-brightness',
+                        '#slider-contrast',
+                        '#slider-saturation',
+                        '#slider-exposure',
+                        '#slider-sepia',
+                        '#slider-sharpen',
+                    ].forEach(function (identity) {
+                        $(identity).slider({
+                            orientation: "horizontal", // vertical
+                            animate: true,
+                            range: 'min',
+                            min: MIN_VALUE_ADJUST,
+                            max: MAX_VALUE_ADJUST,
+                            step: 1,
+                            value: DEF_VALUE_ADJUST,
+                            slide: function (event, ui) {
+                                $(this).find('.ui-slider-handle').text(ui.value);
+                            },
+                            create: function (event, ui) {
+                                var v = $(this).slider('value');
+                                $(this).find('.ui-slider-handle').text(v);
+                            }
+                        });
+                    });
+
+                    // Get canvas
+                    canvas = document.getElementById('canvas');
+                    ctx = canvas.getContext("2d");
+                    // Waiting image to be loaded
+                    img.onload = function () {
+                        isLoadedImage = true;
+                        console.log('width x height = ', img.width, img.height);
+                        // Update image width & height in resize board
+                        modal.find('input[name="resize-w"]').val(img.width);
+                        modal.find('input[name="resize-h"]').val(img.height);
+                        // Verify image size
+                        curImgWidth = img.width  > 500 ? 500 : img.width;
+                        curImgHeight = img.height > 400 ? 400 : img.height;
+                        canvas.width  = curImgWidth;
+                        canvas.height = curImgHeight;
+                        // Show image
+                        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    };
+                });
+
+                // Resize image
+                modal.on('click', '.apply-resize', function (e) {
+                    curImgWidth = modal.find('input[name="resize-w"]').val();
+                    curImgHeight = modal.find('input[name="resize-h"]').val();
+                    let keepRatio = modal.find('input[name="resize-keep-ratio"]').val();
+                    if (isLoadedImage) {
+                        canvas.width = curImgWidth;
+                        canvas.height = curImgHeight;
+                        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                        ctx.save();
+                    }
+                });
+                // When resizing width of image
+                modal.on('change', 'input[name="resize-w"]', function (e) {
+                    if (isKeepRatio('input[name="resize-keep-ratio"]')) {
+                        modal.find('input[name="resize-h"]').val(Number($(this).val()) * ratioImage());
+                    }
+                });
+                // When resizing height of image
+                modal.on('change', 'input[name="resize-h"]', function (e) {
+                    let value = $(this).val();
+                    if (isKeepRatio('input[name="resize-keep-ratio"]')) {
+                        modal.find('input[name="resize-w"]').val(Number($(this).val()) * ratioImage());
+                    }
+                });
+
+                modal.on('click', '.apply-clockwise', function(e) {
+                    degrees += 90;
+                    drawRotated(degrees);
+                });
+
+                modal.on('click', '.apply-counterclockwise', function(e) {
+                    degrees -= 90;
+                    drawRotated(degrees);
+                });
+
+                function drawRotated(degrees) {
+                    console.log(curImgWidth, curImgHeight, canvas.width, canvas.height);
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    ctx.save();
+                    ctx.translate(canvas.width / 2, canvas.widtht / 2);
+                    ctx.rotate(degrees * Math.PI / 180);
+                    ctx.translate(-img.width * 0.5, -img.height * 0.5);
+                    // ctx.drawImage(img, -img.width / 2, -img.width / 2);
+                    ctx.drawImage(img, -canvas.width / 2, -canvas.width / 2);
+                    ctx.restore();
+                }
+
+                function isKeepRatio(identity) {
+                    let keepRatio = modal.find(identity).val();
+                    return ['on', 'true', true, 1, '1'].indexOf(keepRatio) !== -1;
+                }
+
+                function ratioImage() {
+                    return img.height / img.width;
+                }
             });
         });
     }
