@@ -779,7 +779,6 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
                 var curImgWidth = 0;
                 var img = new Image();
                 img.crossOrigin = "Anonymous";
-                img.src = srcImageSelected;
 
                 // Set image name
                 modal.find('.modal-header .image-name').text(getFileName(pathImageSelected));
@@ -844,6 +843,7 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
                         // Show image
                         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
                     };
+                    img.src = srcImageSelected;
                 });
 
                 // Resize image
@@ -855,7 +855,6 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
                         canvas.width = curImgWidth;
                         canvas.height = curImgHeight;
                         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                        ctx.save();
                     }
                 });
                 // When resizing width of image
@@ -873,24 +872,52 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
                 });
 
                 modal.on('click', '.apply-clockwise', function(e) {
-                    degrees += 90;
+                    degrees += 90 % 360;
                     drawRotated(degrees);
+                    if (degrees == 360) {
+                        degrees = 0;
+                    }
                 });
 
                 modal.on('click', '.apply-counterclockwise', function(e) {
-                    degrees -= 90;
+                    if (degrees == 0) {
+                        degrees = 270;
+                    } else {
+                        degrees -= 90;
+                    }
                     drawRotated(degrees);
                 });
 
                 function drawRotated(degrees) {
                     console.log(curImgWidth, curImgHeight, canvas.width, canvas.height);
+                    if (degrees == 90 || degrees == 270) {
+                        canvas.width = curImgHeight;
+                        canvas.height = curImgWidth;
+                    } else {
+                        canvas.width = curImgWidth;
+                        canvas.height = curImgHeight;
+                    }
                     ctx.clearRect(0, 0, canvas.width, canvas.height);
                     ctx.save();
-                    ctx.translate(canvas.width / 2, canvas.widtht / 2);
-                    ctx.rotate(degrees * Math.PI / 180);
-                    ctx.translate(-img.width * 0.5, -img.height * 0.5);
-                    // ctx.drawImage(img, -img.width / 2, -img.width / 2);
-                    ctx.drawImage(img, -canvas.width / 2, -canvas.width / 2);
+                    if (degrees == 90 || degrees == 270) {
+                        ctx.translate(canvas.width / 2, canvas.height / 2);
+                        ctx.rotate(degrees * Math.PI / 180);
+                        ctx.drawImage(img, -canvas.height / 2, -canvas.width / 2, canvas.height, canvas.width);
+                        ctx.rotate(-degrees * Math.PI / 180);
+                        ctx.translate(-canvas.width / 2, -canvas.height / 2);
+                    } else {
+                        console.log('90 left')
+                        ctx.translate(canvas.width / 2, canvas.height / 2);
+                        ctx.rotate(degrees * Math.PI / 180);
+                        ctx.drawImage(img, -canvas.width/2, -canvas.height/2, canvas.width, canvas.height);
+                        ctx.rotate(-degrees * Math.PI / 180);
+                        ctx.translate(-canvas.width / 2, -canvas.height / 2);
+                    }
+                    // ctx.translate(canvas.width / 2, canvas.height / 2);
+                    // ctx.rotate(degrees*Math.PI/180);
+                    // ctx.drawImage(img, -canvas.width/2, -canvas.height/2, canvas.width, canvas.height);
+                    // ctx.rotate(-degrees*Math.PI/180);
+                    // ctx.translate(-canvas.width / 2, -canvas.height / 2);
                     ctx.restore();
                 }
 
