@@ -772,11 +772,27 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
         load('./modals/image-processor.html', function (classNameWrap) {
             $(function () {
                 var modal = $(document).find('.modal-app');
-                var isLoadedImage = false;
+                var MIN_VALUE_ADJUST = -100;
+                var MAX_VALUE_ADJUST = 100;
+                var DEF_VALUE_ADJUST = 0;
+                var SLIDER_BARS_ADJUST = [
+                    '#slider-brightness',
+                    '#slider-contrast',
+                    '#slider-saturation',
+                    '#slider-exposure',
+                    '#slider-sepia',
+                    '#slider-sharpen',
+                ];
+                var CANVAS_DEFAULT_HEIGHT = 400;
+                var CANVAS_DEFAULT_WIDTH  = 500;
+
                 var canvas, ctx;
+                var isLoadedImage = false;
                 var degrees = 0;
                 var curImgHeight = 0;
-                var curImgWidth = 0;
+                var curImgWidth  = 0;
+                var oriImgHeight = 0;
+                var oriImgWidth  = 0;
                 var img = new Image();
                 img.crossOrigin = "Anonymous";
 
@@ -795,26 +811,16 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
 
                 // Handle image after modal shown
                 modal.on('shown.bs.modal', function (e) {
-                    var MIN_VALUE_ADJUST = -100;
-                    var MAX_VALUE_ADJUST = 100;
-                    var DEF_VALUE_ADJUST = 0;
-                    // Show silder bars
-                    [
-                        '#slider-brightness',
-                        '#slider-contrast',
-                        '#slider-saturation',
-                        '#slider-exposure',
-                        '#slider-sepia',
-                        '#slider-sharpen',
-                    ].forEach(function (identity) {
+                    // Show silder bars (adjust tool)
+                    SLIDER_BARS_ADJUST.forEach(function (identity) {
                         $(identity).slider({
                             orientation: "horizontal", // vertical
                             animate: true,
                             range: 'min',
                             min: MIN_VALUE_ADJUST,
                             max: MAX_VALUE_ADJUST,
-                            step: 1,
                             value: DEF_VALUE_ADJUST,
+                            step: 1,
                             slide: function (event, ui) {
                                 $(this).find('.ui-slider-handle').text(ui.value);
                             },
@@ -828,16 +834,17 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
                     // Get canvas
                     canvas = document.getElementById('canvas');
                     ctx = canvas.getContext("2d");
-                    // Waiting image to be loaded
+                    // Waiting image until it is loaded
                     img.onload = function () {
                         isLoadedImage = true;
-                        console.log('width x height = ', img.width, img.height);
                         // Update image width & height in resize board
                         modal.find('input[name="resize-w"]').val(img.width);
                         modal.find('input[name="resize-h"]').val(img.height);
                         // Verify image size
-                        curImgWidth = img.width  > 500 ? 500 : img.width;
-                        curImgHeight = img.height > 400 ? 400 : img.height;
+                        oriImgHeight  = img.height;
+                        oriImgWidth   = img.width;
+                        curImgWidth   = oriImgWidth  > CANVAS_DEFAULT_WIDTH  ? CANVAS_DEFAULT_WIDTH  : oriImgWidth;
+                        curImgHeight  = oriImgHeight > CANVAS_DEFAULT_HEIGHT ? CANVAS_DEFAULT_HEIGHT : oriImgHeight;
                         canvas.width  = curImgWidth;
                         canvas.height = curImgHeight;
                         // Show image
@@ -848,11 +855,37 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
 
                 // Resize image
                 modal.on('click', '.apply-resize', function (e) {
-                    curImgWidth = modal.find('input[name="resize-w"]').val();
-                    curImgHeight = modal.find('input[name="resize-h"]').val();
-                    let keepRatio = modal.find('input[name="resize-keep-ratio"]').val();
+                    // Current image size
+                    curImgWidth  = parseInt(modal.find('input[name="resize-w"]').val());
+                    curImgHeight = parseInt(modal.find('input[name="resize-h"]').val());
+                    // Validate image sizes
+                    if (isNaN(curImgWidth)) {
+                        alert('Image width must be a positive number!');
+                        return;
+                    }
+                    if (isNaN(curImgHeight)) {
+                        alert('Image height must be a positive number!');
+                        return;
+                    }
+                    if (curImgWidth <= 0) {
+                        alert('Image width can not a negative number!');
+                        return;
+                    }
+                    if (curImgHeight <= 0) {
+                        alert('Image height can not a negative number!');
+                        return;
+                    }
+                    if (curImgWidth > oriImgWidth) {
+                        alert('You enter a width value less than ' + oriImgWidth + '!');
+                        return;
+                    }
+                    if (curImgHeight > oriImgHeight) {
+                        alert('You enter a height value less than ' + oriImgHeight + '!');
+                        return;
+                    }
+                    // Resize image
                     if (isLoadedImage) {
-                        canvas.width = curImgWidth;
+                        canvas.width  = curImgWidth;
                         canvas.height = curImgHeight;
                         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
                     }
@@ -865,69 +898,132 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
                 });
                 // When resizing height of image
                 modal.on('change', 'input[name="resize-h"]', function (e) {
-                    let value = $(this).val();
                     if (isKeepRatio('input[name="resize-keep-ratio"]')) {
                         modal.find('input[name="resize-w"]').val(Number($(this).val()) * ratioImage());
                     }
                 });
 
+                // Rotating image by clockwise
                 modal.on('click', '.apply-clockwise', function(e) {
                     degrees += 90 % 360;
-                    drawRotated(degrees);
+                    rotateImage(degrees);
+                    // Prevent image cliped when rotating over 4 times
                     if (degrees == 360) {
                         degrees = 0;
                     }
                 });
 
+                // Rotating image by counterclockwise
                 modal.on('click', '.apply-counterclockwise', function(e) {
                     if (degrees == 0) {
                         degrees = 270;
                     } else {
                         degrees -= 90;
                     }
-                    drawRotated(degrees);
+                    rotateImage(degrees);
                 });
 
-                function drawRotated(degrees) {
-                    console.log(curImgWidth, curImgHeight, canvas.width, canvas.height);
-                    if (degrees == 90 || degrees == 270) {
-                        canvas.width = curImgHeight;
+                // Drag crop box
+                modal.find('.crop-box').draggable({
+                    scroll: true,
+                    axis: "xy",
+                    containment: '#image-canvas',
+                    revert: false,
+                    disable: false,
+                    start: function(event, ui) { // when starting drag
+                        //
+                    },
+                    drag: function(event, ui) { // when dragging
+                        //
+                    },
+                    stop:function(event, ui) { // Dragging done
+                        // Track positions of dragging
+                    }
+                });
+
+                modal.on('mousemove', function (e) {
+                    // var mouse={},width,height,left,top;
+                    // mouse.x = (e.clientX || e.pageX || e.originalEvent.touches[0].clientX) + $(window).scrollLeft();
+                    // mouse.y = (e.clientY || e.pageY || e.originalEvent.touches[0].clientY) + $(window).scrollTop();
+
+                    // // Position image differently depending on the corner dragged and constraints
+                    // if ($(this).hasClass('crop-point-bottom-right')) { // crop-point-bottom-right (se)
+                    //     width = mouse.x - event_state.container_left;
+                    //     height = mouse.y  - event_state.container_top;
+                    //     left = event_state.container_left;
+                    //     top = event_state.container_top;
+                    // } else if ($(event_state.evnt.target).hasClass('crop-point-bottom-left')) { // crop-point-bottom-left (sw)
+                    //     width = event_state.container_width - (mouse.x - event_state.container_left);
+                    //     height = mouse.y  - event_state.container_top;
+                    //     left = mouse.x;
+                    //     top = event_state.container_top;
+                    // } else if ($(event_state.evnt.target).hasClass('crop-point-top-left')) { // crop-point-top-left (nw)
+                    //     width = event_state.container_width - (mouse.x - event_state.container_left);
+                    //     height = event_state.container_height - (mouse.y - event_state.container_top);
+                    //     left = mouse.x;
+                    //     top = mouse.y;
+                    //     if (constrain || e.shiftKey) {
+                    //         top = mouse.y - ((width / orig_src.width * orig_src.height) - height);
+                    //     }
+                    // } else if ($(event_state.evnt.target).hasClass('crop-point-top-right')) { // crop-point-top-right (ne)
+                    //     width = mouse.x - event_state.container_left;
+                    //     height = event_state.container_height - (mouse.y - event_state.container_top);
+                    //     left = event_state.container_left;
+                    //     top = mouse.y;
+                    //     if (constrain || e.shiftKey) {
+                    //         top = mouse.y - ((width / orig_src.width * orig_src.height) - height);
+                    //     }
+                    // }
+
+                    // // Optionally maintain aspect ratio
+                    // if (constrain || e.shiftKey) {
+                    //     height = width / orig_src.width * orig_src.height;
+                    // }
+
+                    // if (width > min_width && height > min_height && width < max_width && height < max_height) {
+                    //     // To improve performance you might limit how often resizeImage() is called
+                    //     resizeImage(width, height);  
+                    //     // Without this Firefox will not re-calculate the the image dimensions until drag end
+                    //     $container.offset({'left': left, 'top': top});
+                    // }
+                });
+
+                modal.on('mouseup', function (e) {
+                    //
+                });
+
+                function rotateImage(deg) {
+                    if (deg == 90 || deg == 270) {
+                        canvas.width  = curImgHeight;
                         canvas.height = curImgWidth;
                     } else {
-                        canvas.width = curImgWidth;
+                        canvas.width  = curImgWidth;
                         canvas.height = curImgHeight;
                     }
+
                     ctx.clearRect(0, 0, canvas.width, canvas.height);
                     ctx.save();
-                    if (degrees == 90 || degrees == 270) {
-                        ctx.translate(canvas.width / 2, canvas.height / 2);
-                        ctx.rotate(degrees * Math.PI / 180);
+
+                    ctx.translate(canvas.width / 2, canvas.height / 2);
+                    ctx.rotate(deg * Math.PI / 180);
+
+                    if (deg == 90 || deg == 270) {
                         ctx.drawImage(img, -canvas.height / 2, -canvas.width / 2, canvas.height, canvas.width);
-                        ctx.rotate(-degrees * Math.PI / 180);
-                        ctx.translate(-canvas.width / 2, -canvas.height / 2);
                     } else {
-                        console.log('90 left')
-                        ctx.translate(canvas.width / 2, canvas.height / 2);
-                        ctx.rotate(degrees * Math.PI / 180);
-                        ctx.drawImage(img, -canvas.width/2, -canvas.height/2, canvas.width, canvas.height);
-                        ctx.rotate(-degrees * Math.PI / 180);
-                        ctx.translate(-canvas.width / 2, -canvas.height / 2);
+                        ctx.drawImage(img, -canvas.width / 2, -canvas.height / 2, canvas.width, canvas.height);
                     }
-                    // ctx.translate(canvas.width / 2, canvas.height / 2);
-                    // ctx.rotate(degrees*Math.PI/180);
-                    // ctx.drawImage(img, -canvas.width/2, -canvas.height/2, canvas.width, canvas.height);
-                    // ctx.rotate(-degrees*Math.PI/180);
-                    // ctx.translate(-canvas.width / 2, -canvas.height / 2);
+
+                    ctx.rotate(-deg * Math.PI / 180);
+                    ctx.translate(-canvas.width / 2, -canvas.height / 2);
                     ctx.restore();
                 }
 
                 function isKeepRatio(identity) {
-                    let keepRatio = modal.find(identity).val();
-                    return ['on', 'true', true, 1, '1'].indexOf(keepRatio) !== -1;
+                    return modal.find(identity).is(':checked');
                 }
 
                 function ratioImage() {
-                    return img.height / img.width;
+                    return oriImgHeight / oriImgWidth;
                 }
             });
         });
