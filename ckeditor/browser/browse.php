@@ -923,8 +923,17 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
                     rotateImage(degrees);
                 });
 
+                var event_state = {};
+                var constraint  = false;
+                var min_width   = 60;  // Change as required
+                var min_height  = 60;
+                var max_width   = 800; // Change as required
+                var max_height  = 500;
+                var cropBox    = modal.find('.crop-box');
+                var $container = modal.find('.crop-box');
+
                 // Drag crop box
-                modal.find('.crop-box').draggable({
+                cropBox.draggable({
                     scroll: true,
                     axis: "xy",
                     containment: '#image-canvas',
@@ -941,55 +950,112 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
                     }
                 });
 
-                modal.on('mousemove', function (e) {
-                    // var mouse={},width,height,left,top;
-                    // mouse.x = (e.clientX || e.pageX || e.originalEvent.touches[0].clientX) + $(window).scrollLeft();
-                    // mouse.y = (e.clientY || e.pageY || e.originalEvent.touches[0].clientY) + $(window).scrollTop();
+                // Save state of event that it starts pulling corners of crop box
+                function saveEventState(e) {
+                    // Save the initial event details and container state
+                    event_state.container_width  = $container.width();
+                    event_state.container_height = $container.height();
+                    event_state.container_left   = $container.offset().left;
+                    event_state.container_top    = $container.offset().top;
+                    event_state.mouse_x = (e.clientX || e.pageX || e.originalEvent.touches[0].clientX) + $(window).scrollLeft();
+                    event_state.mouse_y = (e.clientY || e.pageY || e.originalEvent.touches[0].clientY) + $(window).scrollTop();
 
-                    // // Position image differently depending on the corner dragged and constraints
-                    // if ($(this).hasClass('crop-point-bottom-right')) { // crop-point-bottom-right (se)
-                    //     width = mouse.x - event_state.container_left;
-                    //     height = mouse.y  - event_state.container_top;
-                    //     left = event_state.container_left;
-                    //     top = event_state.container_top;
-                    // } else if ($(event_state.evnt.target).hasClass('crop-point-bottom-left')) { // crop-point-bottom-left (sw)
-                    //     width = event_state.container_width - (mouse.x - event_state.container_left);
-                    //     height = mouse.y  - event_state.container_top;
-                    //     left = mouse.x;
-                    //     top = event_state.container_top;
-                    // } else if ($(event_state.evnt.target).hasClass('crop-point-top-left')) { // crop-point-top-left (nw)
-                    //     width = event_state.container_width - (mouse.x - event_state.container_left);
-                    //     height = event_state.container_height - (mouse.y - event_state.container_top);
-                    //     left = mouse.x;
-                    //     top = mouse.y;
-                    //     if (constrain || e.shiftKey) {
-                    //         top = mouse.y - ((width / orig_src.width * orig_src.height) - height);
-                    //     }
-                    // } else if ($(event_state.evnt.target).hasClass('crop-point-top-right')) { // crop-point-top-right (ne)
-                    //     width = mouse.x - event_state.container_left;
-                    //     height = event_state.container_height - (mouse.y - event_state.container_top);
-                    //     left = event_state.container_left;
-                    //     top = mouse.y;
-                    //     if (constrain || e.shiftKey) {
-                    //         top = mouse.y - ((width / orig_src.width * orig_src.height) - height);
-                    //     }
-                    // }
+                    // This is a fix for mobile safari
+                    // For some reason it does not allow a direct copy of the touches property
+                    if (typeof e.originalEvent.touches !== 'undefined') {
+                        event_state.touches = [];
+                        $.each(e.originalEvent.touches, function(i, o) {
+                            event_state.touches[i] = {};
+                            event_state.touches[i].clientX = 0 + o.clientX;
+                            event_state.touches[i].clientY = 0 + o.clientY;
+                        });
+                    }
+                    event_state.event = e;
+                }
 
-                    // // Optionally maintain aspect ratio
-                    // if (constrain || e.shiftKey) {
-                    //     height = width / orig_src.width * orig_src.height;
-                    // }
+                // Change size of crop box while pulling its corners
+                function resizing(e) {
+                    e.preventDefault();
+
+                    // Turn off draggling crop box when pulling its corners
+                    cropBox.draggable({disable: true});
+
+                    var mouse={},width,height,left,top,offset=$container.offset(),$currentCropHandle=$(event_state.event.target);
+                    mouse.x = (e.clientX || e.pageX || e.originalEvent.touches[0].clientX) + $(window).scrollLeft();
+                    mouse.y = (e.clientY || e.pageY || e.originalEvent.touches[0].clientY) + $(window).scrollTop();
+
+                    // Position that crop box differently depending on the corner dragged and constraints
+                    if ($currentCropHandle.hasClass('crop-point-bottom-right')) { // se
+                        width  = mouse.x - event_state.container_left;
+                        height = mouse.y - event_state.container_top;
+                        left   = event_state.container_left;
+                        top    = event_state.container_top;
+                    } else if ($currentCropHandle.hasClass('crop-point-bottom-left')) { // sw
+                        width  = event_state.container_width - (mouse.x - event_state.container_left);
+                        height = mouse.y  - event_state.container_top;
+                        left   = mouse.x;
+                        top    = event_state.container_top;
+                    } else if ($currentCropHandle.hasClass('crop-point-top-left')) { // nw
+                        width  = event_state.container_width - (mouse.x - event_state.container_left);
+                        height = event_state.container_height - (mouse.y - event_state.container_top);
+                        left   = mouse.x;
+                        top    = mouse.y;
+                        // When press and hold SHIFT
+                        if (constraint || e.shiftKey) {
+                            top = mouse.y - ((width / event_state.container_width * event_state.container_height) - height);
+                        }
+                    } else if ($currentCropHandle.hasClass('crop-point-top-right')) { //ne
+                        width  = mouse.x - event_state.container_left;
+                        height = event_state.container_height - (mouse.y - event_state.container_top);
+                        left   = event_state.container_left;
+                        top    = mouse.y;
+                        // When press and hold SHIFT
+                        if (constraint || e.shiftKey){
+                            top = mouse.y - ((width / event_state.container_width * event_state.container_height) - height);
+                        }
+                    }
+
+                    // Optionally maintain aspect ratio (press and hold SHIFT)
+                    if (constraint || e.shiftKey) {
+                        height = width / event_state.container_width * event_state.container_height;
+                    }
+
+                    cropBox.css({width, height, transform: 'translate(0)'});
+                    // Without this, Firefox will not re-calculate the the image dimensions until drag end
+                    cropBox.offset({'left': left, 'top': top});
 
                     // if (width > min_width && height > min_height && width < max_width && height < max_height) {
                     //     // To improve performance you might limit how often resizeImage() is called
-                    //     resizeImage(width, height);  
+                    //     resizeCropBox(width, height);
+                    //     console.log('w x h => ', width, height);
                     //     // Without this Firefox will not re-calculate the the image dimensions until drag end
                     //     $container.offset({'left': left, 'top': top});
                     // }
-                });
+                }
 
-                modal.on('mouseup', function (e) {
-                    //
+                // When finished pulling corners of crop box
+                function endResize(e) {
+                    e.preventDefault();
+                    // Turn off pulling corners of crop box
+                    modal.off('mouseup touchend', endResize);
+                    modal.off('mousemove touchmove', resizing);
+                    // Turn on draggling crop box when finished pulling its corners
+                    modal.find('.crop-box').draggable({disable: false});
+                }
+
+                // function resizeCropBox(width, height) {
+                //     modal.find('.crop-box').css({width: width, height: height});
+                // }
+
+                // 
+                $container.on('mousedown touchstart', '.crop-handle', function (e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+
+                    saveEventState(e);
+
+                    modal.on('mousemove touchmove', resizing);
+                    modal.on('mouseup touchend', endResize);
                 });
 
                 function rotateImage(deg) {
