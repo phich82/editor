@@ -796,6 +796,15 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
                 var img = new Image();
                 img.crossOrigin = "Anonymous";
 
+                // Crop image
+                var cropBox = modal.find('.crop-box');
+                var event_state = {};
+                var constraint  = isKeepRatio('input[name="crop-keep-ratio"]');
+                var crop_box_min_width  = 60;  // Change as required
+                var crop_box_min_height = 60;
+                var crop_box_max_width  = 800; // Change as required
+                var crop_box_max_height = 500;
+
                 // Set image name
                 modal.find('.modal-header .image-name').text(getFileName(pathImageSelected));
 
@@ -823,6 +832,39 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
                             step: 1,
                             slide: function (event, ui) {
                                 $(this).find('.ui-slider-handle').text(ui.value);
+                                console.log('slider-id => ', $(this).attr('id'))
+                                switch ($(this).attr('id')) {
+                                    case 'slider-brightness':
+                                        var iD = ctx.getImageData();
+                                        var dA = iD.data; // raw pixel data in array
+                                        var brightnessMul = Number(ui.value); // brightness multiplier
+
+                                        for (var i = 0; i < dA.length; i += 4) {
+                                            var red   = dA[i];     // Extract original red color [0 to 255]
+                                            var green = dA[i + 1]; // Extract green
+                                            var blue  = dA[i + 2]; // Extract blue
+
+                                            brightenedRed   = brightnessMul * red;
+                                            brightenedGreen = brightnessMul * green;
+                                            brightenedBlue  = brightnessMul * blue;
+
+                                            /**
+                                             *
+                                             * Remember, you should make sure the values brightenedRed,
+                                             * brightenedGreen, and brightenedBlue are between
+                                             * 0 and 255. You can do this by using
+                                             * Math.max(0, Math.min(255, brightenedRed))
+                                             *
+                                             */
+
+                                            dA[i] = brightenedRed;
+                                            dA[i + 1] = brightenedGreen;
+                                            dA[i + 2] = brightenedBlue;
+                                        }
+
+                                        ctx.putImageData(iD, imgX, imgY);
+                                        break;
+                                }
                             },
                             create: function (event, ui) {
                                 var v = $(this).slider('value');
@@ -836,7 +878,7 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
                     ctx = canvas.getContext("2d");
                     // Waiting image until it is loaded
                     img.onload = function () {
-                        isLoadedImage = true;
+                       isLoadedImage = true;
                         // Update image width & height in resize board
                         modal.find('input[name="resize-w"]').val(img.width);
                         modal.find('input[name="resize-h"]').val(img.height);
@@ -888,6 +930,7 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
                         canvas.width  = curImgWidth;
                         canvas.height = curImgHeight;
                         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                        ctx.save();
                     }
                 });
                 // When resizing width of image
@@ -923,14 +966,19 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
                     rotateImage(degrees);
                 });
 
-                var cropBox = modal.find('.crop-box');
-                var event_state = {};
-                var constraint  = isKeepRatio('input[name="crop-keep-ratio"]');
-                var crop_box_min_width  = 60;  // Change as required
-                var crop_box_min_height = 60;
-                var crop_box_max_width  = 800; // Change as required
-                var crop_box_max_height = 500;
+                modal.on('click', '.apply-crop', function (e) {
+                    var left   = cropBox.offset().left - $(canvas).offset().left;
+                    var top    = cropBox.offset().top - $(canvas).offset().top;
+                    var width  = cropBox.width();
+                    var height = cropBox.height();
 
+                    canvas.width = width;
+                    canvas.height = height;
+
+                    ctx.drawImage(img, left, top, width, height, 0, 0, width, height);
+                });
+
+                // Keep aspect ratio of image
                 modal.find('input[name="crop-keep-ratio"]').on('change', function () {
                     constraint  = isKeepRatio('input[name="crop-keep-ratio"]');
                 });
@@ -1062,10 +1110,6 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
                     modal.find('.crop-box').draggable({disable: false});
                 }
 
-                // function resizeCropBox(width, height) {
-                //     modal.find('.crop-box').css({width: width, height: height});
-                // }
-
                 // Start event for corners (8) of crop box
                 cropBox.on('mousedown touchstart', '.crop-handle', function (e) {
                     e.preventDefault();
@@ -1102,7 +1146,8 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
 
                     ctx.rotate(-deg * Math.PI / 180);
                     ctx.translate(-canvas.width / 2, -canvas.height / 2);
-                    ctx.restore();
+                    ctx.save();
+                    // ctx.restore();
                 }
 
                 function isKeepRatio(identity) {
@@ -1112,6 +1157,7 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
                 function ratioImage() {
                     return oriImgHeight / oriImgWidth;
                 }
+
             });
         });
     }
