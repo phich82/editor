@@ -923,14 +923,17 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
                     rotateImage(degrees);
                 });
 
+                var cropBox = modal.find('.crop-box');
                 var event_state = {};
-                var constraint  = false;
-                var min_width   = 60;  // Change as required
-                var min_height  = 60;
-                var max_width   = 800; // Change as required
-                var max_height  = 500;
-                var cropBox    = modal.find('.crop-box');
-                var $container = modal.find('.crop-box');
+                var constraint  = isKeepRatio('input[name="crop-keep-ratio"]');
+                var crop_box_min_width  = 60;  // Change as required
+                var crop_box_min_height = 60;
+                var crop_box_max_width  = 800; // Change as required
+                var crop_box_max_height = 500;
+
+                modal.find('input[name="crop-keep-ratio"]').on('change', function () {
+                    constraint  = isKeepRatio('input[name="crop-keep-ratio"]');
+                });
 
                 // Drag crop box
                 cropBox.draggable({
@@ -953,10 +956,10 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
                 // Save state of event that it starts pulling corners of crop box
                 function saveEventState(e) {
                     // Save the initial event details and container state
-                    event_state.container_width  = $container.width();
-                    event_state.container_height = $container.height();
-                    event_state.container_left   = $container.offset().left;
-                    event_state.container_top    = $container.offset().top;
+                    event_state.container_width  = cropBox.width();
+                    event_state.container_height = cropBox.height();
+                    event_state.container_left   = cropBox.offset().left;
+                    event_state.container_top    = cropBox.offset().top;
                     event_state.mouse_x = (e.clientX || e.pageX || e.originalEvent.touches[0].clientX) + $(window).scrollLeft();
                     event_state.mouse_y = (e.clientY || e.pageY || e.originalEvent.touches[0].clientY) + $(window).scrollTop();
 
@@ -980,9 +983,12 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
                     // Turn off draggling crop box when pulling its corners
                     cropBox.draggable({disable: true});
 
-                    var mouse={},width,height,left,top,offset=$container.offset(),$currentCropHandle=$(event_state.event.target);
+                    var mouse={},width,height,left,top,offset=cropBox.offset(),$currentCropHandle=$(event_state.event.target);
                     mouse.x = (e.clientX || e.pageX || e.originalEvent.touches[0].clientX) + $(window).scrollLeft();
                     mouse.y = (e.clientY || e.pageY || e.originalEvent.touches[0].clientY) + $(window).scrollTop();
+
+                    // TODO: check if width or height of crop box after resized over width or height of container,
+                    // TODO: set width or height of crop box as width or height of container
 
                     // Position that crop box differently depending on the corner dragged and constraints
                     if ($currentCropHandle.hasClass('crop-point-bottom-right')) { // se
@@ -1004,7 +1010,7 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
                         if (constraint || e.shiftKey) {
                             top = mouse.y - ((width / event_state.container_width * event_state.container_height) - height);
                         }
-                    } else if ($currentCropHandle.hasClass('crop-point-top-right')) { //ne
+                    } else if ($currentCropHandle.hasClass('crop-point-top-right')) { // ne
                         width  = mouse.x - event_state.container_left;
                         height = event_state.container_height - (mouse.y - event_state.container_top);
                         left   = event_state.container_left;
@@ -1013,6 +1019,26 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
                         if (constraint || e.shiftKey){
                             top = mouse.y - ((width / event_state.container_width * event_state.container_height) - height);
                         }
+                    } else if ($currentCropHandle.hasClass('crop-point-top')) { // n
+                        width  = event_state.container_width;
+                        height = event_state.container_height - (mouse.y - event_state.container_top);
+                        left   = event_state.container_left;
+                        top    = mouse.y;
+                    } else if ($currentCropHandle.hasClass('crop-point-bottom')) { // s
+                        width  = event_state.container_width;
+                        height = mouse.y - event_state.container_top;
+                        left   = event_state.container_left;
+                        top    = event_state.container_top;
+                    } else if ($currentCropHandle.hasClass('crop-point-left')) { // w
+                        width  = event_state.container_width - (mouse.x - event_state.container_left);
+                        height = event_state.container_height;
+                        left   = mouse.x;
+                        top    = event_state.container_top;
+                    } else if ($currentCropHandle.hasClass('crop-point-right')) { // e
+                        width  = mouse.x - event_state.container_left;
+                        height = event_state.container_height;
+                        left   = event_state.container_left;
+                        top    = event_state.container_top;
                     }
 
                     // Optionally maintain aspect ratio (press and hold SHIFT)
@@ -1020,17 +1046,10 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
                         height = width / event_state.container_width * event_state.container_height;
                     }
 
+                    // Resize crop box
                     cropBox.css({width, height, transform: 'translate(0)'});
                     // Without this, Firefox will not re-calculate the the image dimensions until drag end
                     cropBox.offset({'left': left, 'top': top});
-
-                    // if (width > min_width && height > min_height && width < max_width && height < max_height) {
-                    //     // To improve performance you might limit how often resizeImage() is called
-                    //     resizeCropBox(width, height);
-                    //     console.log('w x h => ', width, height);
-                    //     // Without this Firefox will not re-calculate the the image dimensions until drag end
-                    //     $container.offset({'left': left, 'top': top});
-                    // }
                 }
 
                 // When finished pulling corners of crop box
@@ -1047,14 +1066,16 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
                 //     modal.find('.crop-box').css({width: width, height: height});
                 // }
 
-                // 
-                $container.on('mousedown touchstart', '.crop-handle', function (e) {
+                // Start event for corners (8) of crop box
+                cropBox.on('mousedown touchstart', '.crop-handle', function (e) {
                     e.preventDefault();
                     e.stopPropagation();
 
                     saveEventState(e);
 
+                    // When press and holder a corner of crop box via mouse
                     modal.on('mousemove touchmove', resizing);
+                    // When release the mouse
                     modal.on('mouseup touchend', endResize);
                 });
 
