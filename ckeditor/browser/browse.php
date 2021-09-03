@@ -830,23 +830,34 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
                             max: MAX_VALUE_ADJUST,
                             value: DEF_VALUE_ADJUST,
                             step: 1,
-                            slide: function (event, ui) {
+                            slide: debounce(function (event, ui) {
                                 $(this).find('.ui-slider-handle').text(ui.value);
-                                console.log('slider-id => ', $(this).attr('id'))
+                                var curValue = parseInt(ui.value);
+                                var imgX = 0;
+                                var imgY = 0;
+                                ctx.drawImage(img, imgX, imgY, canvas.width, canvas.height);
+                                var scannedImg  = ctx.getImageData(imgX, imgY, canvas.width, canvas.height);
+                                var scannedData = scannedImg.data; // raw pixel data in array
+
+                                console.log('curValue => ', curValue)
+
                                 switch ($(this).attr('id')) {
                                     case 'slider-brightness':
-                                        var iD = ctx.getImageData();
-                                        var dA = iD.data; // raw pixel data in array
-                                        var brightnessMul = Number(ui.value); // brightness multiplier
+                                        // var imgX = 0;
+                                        // var imgY = 0;
+                                        // ctx.drawImage(img, imgX, imgY, canvas.width, canvas.height);
+                                        // var scannedImg  = ctx.getImageData(imgX, imgY, canvas.width, canvas.height);
+                                        // var scannedData = scannedImg.data; // raw pixel data in array
+                                        var brightnessMul = 1 + curValue / 100; // brightness multiplier
 
-                                        for (var i = 0; i < dA.length; i += 4) {
-                                            var red   = dA[i];     // Extract original red color [0 to 255]
-                                            var green = dA[i + 1]; // Extract green
-                                            var blue  = dA[i + 2]; // Extract blue
+                                        for (var i = 0; i < scannedData.length; i += 4) {
+                                            var r = scannedData[i];     // Extract original red color [0 to 255]
+                                            var g = scannedData[i + 1]; // Extract green
+                                            var b = scannedData[i + 2]; // Extract blue
 
-                                            brightenedRed   = brightnessMul * red;
-                                            brightenedGreen = brightnessMul * green;
-                                            brightenedBlue  = brightnessMul * blue;
+                                            brightenedR = brightnessMul * r;
+                                            brightenedG = brightnessMul * g;
+                                            brightenedB = brightnessMul * b;
 
                                             /**
                                              *
@@ -856,18 +867,36 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
                                              * Math.max(0, Math.min(255, brightenedRed))
                                              *
                                              */
-
-                                            dA[i] = brightenedRed;
-                                            dA[i + 1] = brightenedGreen;
-                                            dA[i + 2] = brightenedBlue;
+                                            scannedData[i]   = Math.max(0, Math.min(255, brightenedR));
+                                            scannedData[i+1] = Math.max(0, Math.min(255, brightenedG));
+                                            scannedData[i+2] = Math.max(0, Math.min(255, brightenedB));
                                         }
-
-                                        ctx.putImageData(iD, imgX, imgY);
+                                        scannedImg.data = scannedData;
+                                        ctx.putImageData(scannedImg, imgX, imgY);
+                                        break;
+                                    case 'slider-contrast':
+                                        var contrast = curValue * 2.55;
+                                        if (contrast > 0) {
+                                            for (var i = 0; i < scannedData.length; i += 4) {
+                                                scannedData[i]     += (255 - scannedData[i])     * contrast / 255;            // red
+                                                scannedData[i + 1] += (255 - scannedData[i + 1]) * contrast / 255;    // green
+                                                scannedData[i + 2] += (255 - scannedData[i + 2]) * contrast / 255;    // blue
+                                            }
+                                        } else if (contrast < 0) {
+                                            for (var i = 0; i < scannedData.length; i += 4) {
+                                                scannedData[i]     += scannedData[i]     * (contrast) / 255;                  // red
+                                                scannedData[i + 1] += scannedData[i + 1] * (contrast) / 255;          // green
+                                                scannedData[i + 2] += scannedData[i + 2] * (contrast) / 255;          // blue
+                                            }
+                                        }
+                                        scannedImg.data = scannedData;
+                                        ctx.putImageData(scannedImg, imgX, imgY);
                                         break;
                                 }
-                            },
+                            }),
                             create: function (event, ui) {
                                 var v = $(this).slider('value');
+                                console.log('create => ', ui.value, v)
                                 $(this).find('.ui-slider-handle').text(v);
                             }
                         });

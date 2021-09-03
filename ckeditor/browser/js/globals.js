@@ -97,3 +97,28 @@ function load(pathFile, callback, classNameWrap) {
         });
     }, classNameWrap);
 }
+
+function debounce (func, delay) {
+    let timer;
+    delay = delay || 300;
+    return function() {
+        const context = this;
+        const args = arguments;
+        clearTimeout(timer);
+        timer = setTimeout(function () {
+            func.apply(context, args);
+        }, delay);
+    }
+
+    // let timer;
+    // return funcition () {
+    //     const context = this;
+    //     if (!timer) {
+    //         func.apply(context, args);
+    //     }
+    //     clearTimeout(timer);
+    //     timer = setTimeout(function () {
+    //         timer = undefined;
+    //     }, delay);
+    // };
+}
