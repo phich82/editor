@@ -122,3 +122,13 @@ function debounce (func, delay) {
     //     }, delay);
     // };
 }
+
+function download(canvas, filename, mime, quality) {
+    mime = mime || 'image/jpeg';
+    quality = quality || 0.92; // between 0 and 1
+    const link = document.createElement('a');
+    link.download = filename;
+    link.href = canvas.toDataURL(mime, quality);
+    // Dispatch click event
+    link.dispatchEvent(new MouseEvent('click'));
+}

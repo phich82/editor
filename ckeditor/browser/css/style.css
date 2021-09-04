@@ -171,3 +171,15 @@
     left: 50%;
     transform: translate(-50%, -50%);
 }
+
+/* PRESETS */
+.container-preset {
+    background-color: #f6f8fa;
+    padding-bottom: 0 !important;
+    cursor: pointer;
+}
+
+.container-preset .card {
+    border: none;
+    background-color: #f6f8fa;
+}

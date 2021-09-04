@@ -101,3 +101,20 @@ function sharpen(ctx, w, h, mix) {
 
     ctx.putImageData(dstData, 0, 0);
 }
+
+function applyBrightness(data, brightness) {
+    for (var i = 0; i < data.length; i+= 4) {
+        data[i]   += 255 * (brightness / 100);
+        data[i+1] += 255 * (brightness / 100);
+        data[i+2] += 255 * (brightness / 100);
+    }
+}
+
+function applyContrast(data, contrast) {
+    var factor = (259.0 * (contrast + 255.0)) / (255.0 * (259.0 - contrast));
+    for (var i = 0; i < data.length; i+= 4) {
+      data[i]   = Math.max(0, Math.min(255, (factor * (data[i]   - 128.0) + 128.0)));
+      data[i+1] = Math.max(0, Math.min(255, (factor * (data[i+1] - 128.0) + 128.0)));
+      data[i+2] = Math.max(0, Math.min(255, (factor * (data[i+2] - 128.0) + 128.0)));
+    }
+}

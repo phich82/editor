@@ -17,6 +17,7 @@
     <!-- Option 1: Bootstrap Bundle with Popper -->
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.3/dist/umd/popper.min.js" integrity="sha384-eMNCOe7tC1doHpGoWe/6oMVemdAVTMs2xqW4mwXrXsW0L84Iytr2wi5v2QjrP/xp" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/js/bootstrap.min.js" integrity="sha384-cn7l7gDp0eyniUwwAZgrzD06kc/tftFf19TOAs2zVinnD/C7E91j9yyk5//jjpt/" crossorigin="anonymous"></script>
+    <script src="./js/libs/caman.full.min.js"></script>
     <script src="./js/globals.js"></script>
     <script src="./js/context.js"></script>
     <script src="./js/filters.js"></script>
@@ -788,6 +789,7 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
                 var CANVAS_DEFAULT_HEIGHT = 400;
                 var CANVAS_DEFAULT_WIDTH  = 500;
 
+                var CANVAS_ID = '#canvas';
                 var canvas, ctx;
                 var isLoadedImage = false;
                 var degrees = 0;
@@ -836,50 +838,97 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
                             slide: debounce(function (event, ui) {
                                 $(this).find('.ui-slider-handle').text(ui.value);
                                 var curValue = parseInt(ui.value);
-
-                                console.log('curValue => ', curValue, filters)
-
                                 switch ($(this).attr('id')) {
                                     case 'slider-blur':
-                                        var blur = curValue;
-                                        filters.blur = `blur(${blur}px)`;
+                                        // var blur = curValue;
+                                        // filters.blur = `blur(${blur}px)`;
+                                        Caman(CANVAS_ID, img, function() {
+                                            this.boxBlur(curValue).render();
+                                        });
                                         break;
                                     case 'slider-brightness':
                                         // Brightness multiplier
-                                        var brightness = 1 + curValue / 100;
-                                        filters.brightness = `brightness(${brightness})`;
+                                        // var brightness = 1 + curValue / 100;
+                                        // filters.brightness = `brightness(${brightness})`;
+                                        Caman(CANVAS_ID, img, function() {
+                                            this.exposure(curValue).render();
+                                        });
                                         break;
                                     case 'slider-contrast':
-                                        var contrast = 1 + curValue / 100;
-                                        filters.contrast = `contrast(${contrast})`;
+                                        // var contrast = 1 + curValue / 100;
+                                        // filters.contrast = `contrast(${contrast})`;
+                                        Caman(CANVAS_ID, img, function() {
+                                            this.contrast(curValue).render();
+                                        });
                                         break;
                                     case 'slider-saturation':
-                                        var saturation = 1 + curValue / 100;
-                                        filters.saturate = `saturate(${saturation})`;
+                                        // var saturation = 1 + curValue / 100;
+                                        // filters.saturate = `saturate(${saturation})`;
+                                        Caman(CANVAS_ID, img, function() {
+                                            this.saturation(curValue).render();
+                                        });
+                                        break;
+                                    case 'slider-exposure':
+                                        // var exposure = curValue;
+                                        //filters.exposure = `saturate(${exposure})`;
+                                        Caman(CANVAS_ID, img, function() {
+                                            this.exposure(curValue).render();
+                                        });
                                         break;
                                     case 'slider-sepia':
-                                        var sepia = curValue / 100;
-                                        filters.sepia = `sepia(${sepia})`;
+                                        // var sepia = curValue / 100;
+                                        // filters.sepia = `sepia(${sepia})`;
+                                        Caman(CANVAS_ID, img, function() {
+                                            this.sepia(curValue).render();
+                                        });
                                         break;
                                     case 'slider-sharpen':
-                                        var vSharpen = curValue / 100;
+                                        // var vSharpen = curValue / 100;
                                         // filters.invert = `invert(${vSharpen})`;
-                                        sharpen(ctx, canvas.width, canvas.height, vSharpen);
+                                        // sharpen(ctx, canvas.width, canvas.height, vSharpen);
                                         // return;
+                                        Caman(CANVAS_ID, img, function() {
+                                            this.sharpen(curValue).render();
+                                        });
                                         break;
                                 }
-                                if (Object.keys(filters).length > 0) {
-                                    ctx.filter = Object.values(filters).join(' ');
-                                    console.log(ctx.filter)
-                                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                                    // ctx.save();
-                                }
+                                // if (Object.keys(filters).length > 0) {
+                                //     ctx.filter = Object.values(filters).join(' ');
+                                //     console.log(ctx.filter)
+                                //     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                                //     // ctx.save();
+                                // }
                             }),
                             create: function (event, ui) {
                                 var v = $(this).slider('value');
                                 console.log('create => ', ui.value, v)
                                 $(this).find('.ui-slider-handle').text(v);
                             }
+                        });
+                    });
+
+                    // Show image presets
+                    modal.find('.presets-img').each(function (idx, element) {
+                        let idPresetImg = '#' + $(element).attr('id');
+                        let type = $(element).data('type');
+                        // Load selected image to presets
+                        $(element).attr('src', srcImageSelected);
+                        // Apply the specified preset filters on each image
+                        Caman(idPresetImg, function() {
+                            if (typeof this[type] === 'function') {
+                                this[type]().render();
+                            } else {
+                                console.warn(`Preset [${type}] not exists.`);
+                            }
+                        });
+                        // Apply selected filter to canvas when selecting a preset
+                        $(element).parent().on('click', function (e) {
+                            let filter = $(this).find('canvas').data('type');
+                            Caman(CANVAS_ID, img, function() {
+                                if (typeof this[filter] === 'function') {
+                                    this[filter]().render();
+                                }
+                            });
                         });
                     });
 
