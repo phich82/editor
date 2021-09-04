@@ -772,50 +772,27 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
         var pathImageSelected = $(elementTarget).attr('data-path');
         var srcImageSelected = $(elementTarget).find('img').attr('src');
 
-        load('./modals/image-editor.html', function (classNameWrap) {
-            $(function() {
-                var modal = $(document).find('.modal-app');
-                $('#image-area').find('img').attr('src', srcImageSelected);
-
-                modal.modal('toggle');
-
-                modal.on('click', '.close', function (e) {
-                    modal.modal('hide');
-                });
-
-                modal.on('hide.bs.modal', function (e) {
-                    $(`.${classNameWrap}`).remove();
-                });
-
-                modal.on('shown.bs.modal', function (e) {
-                    
-                });
-            });
-        });
-
-        return;
-
         load('./modals/image-processor.html', function (classNameWrap) {
             $(function () {
                 var modal = $(document).find('.modal-app');
-                var MIN_VALUE_ADJUST = -100;
-                var MAX_VALUE_ADJUST = 100;
-                var DEF_VALUE_ADJUST = 0;
-                var SLIDER_BARS_ADJUST = {
-                    '#slider-blur'      : {min: MIN_VALUE_ADJUST, max: MAX_VALUE_ADJUST},
-                    '#slider-brightness': {min: MIN_VALUE_ADJUST, max: MAX_VALUE_ADJUST},
-                    '#slider-contrast'  : {min: MIN_VALUE_ADJUST, max: MAX_VALUE_ADJUST},
-                    '#slider-saturation': {min: MIN_VALUE_ADJUST, max: MAX_VALUE_ADJUST},
-                    '#slider-exposure'  : {min: MIN_VALUE_ADJUST, max: MAX_VALUE_ADJUST},
-                    '#slider-sepia'     : {min: 0, max: MAX_VALUE_ADJUST},
-                    '#slider-sharpen'   : {min: 0, max: MAX_VALUE_ADJUST},
+
+                var SLIDERS = {
+                    '#slider-blur'      : {min: -100, max: 100, val: 0},
+                    '#slider-brightness': {min: -100, max: 100, val: 0},
+                    '#slider-contrast'  : {min: -100, max: 100, val: 0},
+                    '#slider-saturation': {min: -100, max: 100, val: 0},
+                    '#slider-exposure'  : {min: -100, max: 100, val: 0},
+                    '#slider-sepia'     : {min: 0, max: 100, val: 0},
+                    '#slider-sharpen'   : {min: 0, max: 100, val: 0}
                 };
+
                 var CANVAS_DEFAULT_HEIGHT = 400;
                 var CANVAS_DEFAULT_WIDTH  = 500;
 
                 var CANVAS_ID = '#canvas';
                 var canvas, ctx;
                 var isLoadedImage = false;
+                var IS_CHANGED_DATA = false;
                 var degrees = 0;
                 var curImgHeight = 0;
                 var curImgWidth  = 0;
@@ -832,6 +809,11 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
                 var crop_box_min_height = 60;
                 var crop_box_max_width  = 800; // Change as required
                 var crop_box_max_height = 500;
+                var caman;
+
+                // TODO:for test
+                var IS_CROPPED = false;
+
 
                 // Set image name
                 modal.find('.modal-header .image-name').text(getFileName(pathImageSelected));
@@ -848,85 +830,36 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
 
                 // Handle image after modal shown
                 modal.on('shown.bs.modal', function (e) {
-                    var filters = {};
                     // Show silder bars (adjust tool)
-                    Object.keys(SLIDER_BARS_ADJUST).forEach(function (identity) {
+                    Object.keys(SLIDERS).forEach(function (identity) {
                         $(identity).slider({
                             orientation: "horizontal", // vertical
                             animate: true,
                             range: 'min',
-                            min: SLIDER_BARS_ADJUST[identity].min,
-                            max: SLIDER_BARS_ADJUST[identity].max,
-                            value: DEF_VALUE_ADJUST,
+                            min: SLIDERS[identity].min,
+                            max: SLIDERS[identity].max,
+                            value: SLIDERS[identity].val,
                             step: 1,
-                            slide: debounce(function (event, ui) {
-                                $(this).find('.ui-slider-handle').text(ui.value);
-                                var curValue = parseInt(ui.value);
-                                switch ($(this).attr('id')) {
-                                    case 'slider-blur':
-                                        // var blur = curValue;
-                                        // filters.blur = `blur(${blur}px)`;
-                                        Caman(CANVAS_ID, img, function() {
-                                            this.boxBlur(curValue).render();
-                                        });
-                                        break;
-                                    case 'slider-brightness':
-                                        // Brightness multiplier
-                                        // var brightness = 1 + curValue / 100;
-                                        // filters.brightness = `brightness(${brightness})`;
-                                        Caman(CANVAS_ID, img, function() {
-                                            this.exposure(curValue).render();
-                                        });
-                                        break;
-                                    case 'slider-contrast':
-                                        // var contrast = 1 + curValue / 100;
-                                        // filters.contrast = `contrast(${contrast})`;
-                                        Caman(CANVAS_ID, img, function() {
-                                            this.contrast(curValue).render();
-                                        });
-                                        break;
-                                    case 'slider-saturation':
-                                        // var saturation = 1 + curValue / 100;
-                                        // filters.saturate = `saturate(${saturation})`;
-                                        Caman(CANVAS_ID, img, function() {
-                                            this.saturation(curValue).render();
-                                        });
-                                        break;
-                                    case 'slider-exposure':
-                                        // var exposure = curValue;
-                                        //filters.exposure = `saturate(${exposure})`;
-                                        Caman(CANVAS_ID, img, function() {
-                                            this.exposure(curValue).render();
-                                        });
-                                        break;
-                                    case 'slider-sepia':
-                                        // var sepia = curValue / 100;
-                                        // filters.sepia = `sepia(${sepia})`;
-                                        Caman(CANVAS_ID, img, function() {
-                                            this.sepia(curValue).render();
-                                        });
-                                        break;
-                                    case 'slider-sharpen':
-                                        // var vSharpen = curValue / 100;
-                                        // filters.invert = `invert(${vSharpen})`;
-                                        // sharpen(ctx, canvas.width, canvas.height, vSharpen);
-                                        // return;
-                                        Caman(CANVAS_ID, img, function() {
-                                            this.sharpen(curValue).render();
-                                        });
-                                        break;
+                            change: function (event, ui) {
+                                enableResetBtn();
+                                // Update slider value
+                                $(this).attr('data-val', ui.value);
+                                if (event.originalEvent === undefined) {
+                                    return;
                                 }
-                                // if (Object.keys(filters).length > 0) {
-                                //     ctx.filter = Object.values(filters).join(' ');
-                                //     console.log(ctx.filter)
-                                //     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                                //     // ctx.save();
-                                // }
-                            }),
+                                applyFilters();
+                                caman.render();
+                            },
+                            slide: function (event, ui) {
+                                // Update slider value in real time when sliding seed
+                                $(this).find('.ui-slider-handle').text(ui.value);
+                            },
                             create: function (event, ui) {
-                                var v = $(this).slider('value');
-                                console.log('create => ', ui.value, v)
-                                $(this).find('.ui-slider-handle').text(v);
+                                var value = $(this).slider('value');
+                                // Show default value of sliders
+                                $(this).find('.ui-slider-handle').text(value);
+                                // Set default data of sliders
+                                $(this).attr('data-val', value);
                             }
                         });
                     });
@@ -961,7 +894,7 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
                     ctx = canvas.getContext("2d");
                     // Waiting image until it is loaded
                     img.onload = function () {
-                       isLoadedImage = true;
+                        isLoadedImage = true;
                         // Update image width & height in resize board
                         modal.find('input[name="resize-w"]').val(img.width);
                         modal.find('input[name="resize-h"]').val(img.height);
@@ -974,8 +907,52 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
                         canvas.height = curImgHeight;
                         // Show image
                         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                        caman = Caman(CANVAS_ID, img);
                     };
                     img.src = srcImageSelected;
+                });
+
+                function enableResetBtn() {
+                    if (!IS_CHANGED_DATA) {
+                        IS_CHANGED_DATA = true;
+                        modal.find('.reset').removeClass('disabled').show();
+                    }
+                }
+
+                function applyFilters() {
+                    caman.revert(false);
+                    Object.keys(SLIDERS).forEach(function (identity) {
+                        let filter = $(identity).data('type');
+                        let value  = $(identity).attr('data-val');
+                        if (value == 0) {
+                            return;
+                        }
+                        if (typeof caman[filter] === 'function') {
+                            caman[filter](value);
+                        } else {
+                            console.error(`Filter [${filter}] not exists.`);
+                        }
+                    });
+                }
+
+                function resetFilters() {
+                    Object.keys(SLIDERS).forEach(function (identity) {
+                        let silder = $(identity);
+                        let value = SLIDERS[identity].val;
+                        // Resetn the value data, default value and default text of silder
+                        silder.attr('data-val', value);
+                        silder.slider('option', 'value', value);
+                        silder.find('.ui-slider-handle').text(value);
+                    });
+                }
+
+                // Reset button
+                modal.find('.reset').on('click', function (e) {
+                    e.preventDefault();
+                    caman.reset();
+                    caman.render();
+                    resetFilters();
+                    resetCropBox();
                 });
 
                 // Toogle crop box when selecting it
@@ -1020,10 +997,9 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
                     }
                     // Resize image
                     if (isLoadedImage) {
-                        canvas.width  = curImgWidth;
-                        canvas.height = curImgHeight;
-                        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                        ctx.save();
+                        caman.resize({width: curImgWidth, height: curImgHeight});
+                        applyFilters();
+                        caman.render();
                     }
                 });
                 // When resizing width of image
@@ -1041,43 +1017,32 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
 
                 // Rotating image by clockwise
                 modal.on('click', '.apply-clockwise', function(e) {
-                    degrees += 90 % 360;
-                    rotateImage(degrees);
-                    // Prevent image cliped when rotating over 4 times
-                    if (degrees == 360) {
-                        degrees = 0;
-                    }
+                    degrees += 90;
+                    caman.rotate(90);
+                    applyFilters();
+                    caman.render();
                 });
 
                 // Rotating image by counterclockwise
                 modal.on('click', '.apply-counterclockwise', function(e) {
-                    if (degrees == 0) {
-                        degrees = 270;
-                    } else {
-                        degrees -= 90;
-                    }
-                    rotateImage(degrees);
+                    degrees -= 90;
+                    caman.rotate(-90);
+                    applyFilters();
+                    caman.render();
                 });
 
+                // Crop image
                 modal.on('click', '.apply-crop', function (e) {
-                    var left   = cropBox.offset().left - $(canvas).offset().left;
-                    var top    = cropBox.offset().top  - $(canvas).offset().top;
+                    var left   = cropBox.offset().left - modal.find(CANVAS_ID).offset().left;
+                    var top    = cropBox.offset().top  - modal.find(CANVAS_ID).offset().top;
                     var width  = cropBox.width();
                     var height = cropBox.height();
-
-                    // canvas.width = width;
-                    // canvas.height = height;
-
-                    // ctx.drawImage(img, left, top, width, height, 0, 0, width, height);
-                    Caman(CANVAS_ID, img, function () {
-                        // width, height, x, y
-                        this.crop(width, height, left, top);
-
-                        // Still have to call render!
-                        this.render(function () {
-                            img = this.image;
-                        });
-                    });
+                    // Crop image
+                    caman.crop(width, height, left, top);
+                    applyFilters();
+                    caman.render();
+                    // Align center for crop box
+                    alignCenterCropBox(width, height);
                 });
 
                 // Keep aspect ratio of image
@@ -1089,7 +1054,7 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
                 cropBox.draggable({
                     scroll: true,
                     axis: "xy",
-                    containment: '#image-canvas',
+                    containment: CANVAS_ID,
                     revert: false,
                     disable: false,
                     start: function(event, ui) { // when starting drag
@@ -1101,6 +1066,19 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
                     stop:function(event, ui) { // Dragging done
                         // Track positions of dragging
                     }
+                });
+
+                // Start event for corners (8) of crop box
+                cropBox.on('mousedown touchstart', '.crop-handle', function (e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+
+                    saveEventState(e);
+
+                    // When press and holder a corner of crop box via mouse
+                    modal.on('mousemove touchmove', resizing);
+                    // When release the mouse
+                    modal.on('mouseup touchend', endResize);
                 });
 
                 // Save state of event that it starts pulling corners of crop box
@@ -1212,44 +1190,20 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
                     modal.find('.crop-box').draggable({disable: false});
                 }
 
-                // Start event for corners (8) of crop box
-                cropBox.on('mousedown touchstart', '.crop-handle', function (e) {
-                    e.preventDefault();
-                    e.stopPropagation();
+                function alignCenterCropBox(wCropped, hCropped) {
+                    let wCroppedCanvas = wCropped || cropBox.width();
+                    let topCropBoxHandleSeed = 4;
+                    cropBox.css('top', `calc(50% - ${wCroppedCanvas + topCropBoxHandleSeed}px)`);
+                    cropBox.css('left', `50%`);
+                    cropBox.css('transform', `translate(-50%, -50%)`);
+                }
 
-                    saveEventState(e);
-
-                    // When press and holder a corner of crop box via mouse
-                    modal.on('mousemove touchmove', resizing);
-                    // When release the mouse
-                    modal.on('mouseup touchend', endResize);
-                });
-
-                function rotateImage(deg) {
-                    if (deg == 90 || deg == 270) {
-                        canvas.width  = curImgHeight;
-                        canvas.height = curImgWidth;
-                    } else {
-                        canvas.width  = curImgWidth;
-                        canvas.height = curImgHeight;
-                    }
-
-                    ctx.clearRect(0, 0, canvas.width, canvas.height);
-                    ctx.save();
-
-                    ctx.translate(canvas.width / 2, canvas.height / 2);
-                    ctx.rotate(deg * Math.PI / 180);
-
-                    if (deg == 90 || deg == 270) {
-                        ctx.drawImage(img, -canvas.height / 2, -canvas.width / 2, canvas.height, canvas.width);
-                    } else {
-                        ctx.drawImage(img, -canvas.width / 2, -canvas.height / 2, canvas.width, canvas.height);
-                    }
-
-                    ctx.rotate(-deg * Math.PI / 180);
-                    ctx.translate(-canvas.width / 2, -canvas.height / 2);
-                    ctx.save();
-                    // ctx.restore();
+                function resetCropBox() {
+                    cropBox.css('width', `200px`);
+                    cropBox.css('height', `200px`);
+                    cropBox.css('top', `calc(50% - 400px)`);
+                    cropBox.css('left', `50%`);
+                    cropBox.css('transform', `translate(-50%, -50%)`);
                 }
 
                 function isKeepRatio(identity) {

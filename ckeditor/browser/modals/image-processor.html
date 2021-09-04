@@ -36,9 +36,9 @@
     width: 200px;
     height: 200px;
     /* background-color: red; */
-    top: -50%;
+    top: calc(50% - 400px); /* default height of canvas (image) */
     left: 50%;
-    transform: translate(-50%, -0%);
+    transform: translate(-50%, -50%);
 }
 .crop-center {
     display: block;
@@ -279,7 +279,7 @@
                                 <div id="collapseCrop" class="accordion-collapse container-collapse collapse" aria-labelledby="headingCrop" data-bs-parent="#imageProcessor">
                                     <div class="accordion-body">
                                         <div class="form-check">
-                                            <input class="form-check-input" type="checkbox" name="crop-keep-ratio" id="crop-keep-ratio" checked>
+                                            <input class="form-check-input" type="checkbox" name="crop-keep-ratio" id="crop-keep-ratio">
                                             <label class="form-check-label" for="crop-keep-ratio">
                                                 Keep Aspect Ratio
                                             </label>
@@ -336,7 +336,7 @@
                                             <label class="form-label">Blur</label>
                                             <div class="input-group mb-3">
                                                 <div class="" style="width: 100%;">
-                                                    <div id="slider-blur" data-type="blur"></div>
+                                                    <div id="slider-blur" data-type="boxBlur"></div>
                                                 </div>
                                             </div>
                                         </div>
