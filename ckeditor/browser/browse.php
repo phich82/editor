@@ -776,6 +776,13 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
             $(function () {
                 var modal = $(document).find('.modal-app');
 
+                var CANVAS_ID = '#canvas';
+                var CANVAS_HEIGHT = 400;
+                var CANVAS_WIDTH  = 500;
+                var CROP_BOX_WIDTH  = 200;
+                var CROP_BOX_HEIGHT = 200;
+                var IS_CHANGED_DATA = false;
+
                 var SLIDERS = {
                     '#slider-blur'      : {min: -100, max: 100, val: 0},
                     '#slider-brightness': {min: -100, max: 100, val: 0},
@@ -786,34 +793,27 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
                     '#slider-sharpen'   : {min: 0, max: 100, val: 0}
                 };
 
-                var CANVAS_DEFAULT_HEIGHT = 400;
-                var CANVAS_DEFAULT_WIDTH  = 500;
+                // Load image to canvas
+                modal.find(CANVAS_ID).attr('src', srcImageSelected);
 
-                var CANVAS_ID = '#canvas';
-                var canvas, ctx;
-                var isLoadedImage = false;
-                var IS_CHANGED_DATA = false;
                 var degrees = 0;
-                var curImgHeight = 0;
-                var curImgWidth  = 0;
-                var oriImgHeight = 0;
-                var oriImgWidth  = 0;
-                var img = new Image();
-                img.crossOrigin = "Anonymous";
+                var oriImgWidth  = modal.find(CANVAS_ID).width();
+                var oriImgHeight = modal.find(CANVAS_ID).height();
+                var curImgWidth  = oriImgWidth  > CANVAS_WIDTH  ? CANVAS_WIDTH  : oriImgWidth;;
+                var curImgHeight = oriImgHeight > CANVAS_HEIGHT ? CANVAS_HEIGHT : oriImgHeight;;
 
                 // Crop image
-                var cropBox = modal.find('.crop-box');
+                var cropBox     = modal.find('.crop-box');
                 var event_state = {};
                 var constraint  = isKeepRatio('input[name="crop-keep-ratio"]');
-                var crop_box_min_width  = 60;  // Change as required
-                var crop_box_min_height = 60;
-                var crop_box_max_width  = 800; // Change as required
-                var crop_box_max_height = 500;
-                var caman;
+                var caman = Caman(CANVAS_ID);
 
-                // TODO:for test
-                var IS_CROPPED = false;
-
+                // Update image width & height in resize tool
+                modal.find('input[name="resize-w"]').val(oriImgWidth);
+                modal.find('input[name="resize-h"]').val(oriImgHeight);
+                // Set default size of image
+                modal.find(CANVAS_ID).attr('width', `${curImgWidth}px`);
+                modal.find(CANVAS_ID).attr('height', `${curImgHeight}px`);
 
                 // Set image name
                 modal.find('.modal-header .image-name').text(getFileName(pathImageSelected));
@@ -867,84 +867,30 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
                     // Show image presets
                     modal.find('.presets-img').each(function (idx, element) {
                         let idPresetImg = '#' + $(element).attr('id');
-                        let type = $(element).data('type');
+                        let preset = $(element).data('preset');
                         // Load selected image to presets
                         $(element).attr('src', srcImageSelected);
                         // Apply the specified preset filters on each image
                         Caman(idPresetImg, function() {
-                            if (typeof this[type] === 'function') {
-                                this[type]().render();
+                            if (typeof this[preset] === 'function') {
+                                this[preset]().render();
                             } else {
-                                console.warn(`Preset [${type}] not exists.`);
+                                console.error(`Preset [${preset}] not exists.`);
                             }
                         });
                         // Apply selected filter to canvas when selecting a preset
                         $(element).parent().on('click', function (e) {
-                            let filter = $(this).find('canvas').data('type');
-                            Caman(CANVAS_ID, img, function() {
-                                if (typeof this[filter] === 'function') {
-                                    this[filter]().render();
-                                }
-                            });
+                            e.preventDefault();
+                            let preset = $(this).find('canvas').data('preset');
+                            if (typeof caman[preset] === 'function') {
+                                resetFilters();
+                                caman.revert(true);
+                                caman[preset]();
+                                caman.render();
+                            }
                         });
                     });
-
-                    // Get canvas
-                    canvas = document.getElementById('canvas');
-                    ctx = canvas.getContext("2d");
-                    // Waiting image until it is loaded
-                    img.onload = function () {
-                        isLoadedImage = true;
-                        // Update image width & height in resize board
-                        modal.find('input[name="resize-w"]').val(img.width);
-                        modal.find('input[name="resize-h"]').val(img.height);
-                        // Verify image size
-                        oriImgHeight  = img.height;
-                        oriImgWidth   = img.width;
-                        curImgWidth   = oriImgWidth  > CANVAS_DEFAULT_WIDTH  ? CANVAS_DEFAULT_WIDTH  : oriImgWidth;
-                        curImgHeight  = oriImgHeight > CANVAS_DEFAULT_HEIGHT ? CANVAS_DEFAULT_HEIGHT : oriImgHeight;
-                        canvas.width  = curImgWidth;
-                        canvas.height = curImgHeight;
-                        // Show image
-                        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                        caman = Caman(CANVAS_ID, img);
-                    };
-                    img.src = srcImageSelected;
                 });
-
-                function enableResetBtn() {
-                    if (!IS_CHANGED_DATA) {
-                        IS_CHANGED_DATA = true;
-                        modal.find('.reset').removeClass('disabled').show();
-                    }
-                }
-
-                function applyFilters() {
-                    caman.revert(false);
-                    Object.keys(SLIDERS).forEach(function (identity) {
-                        let filter = $(identity).data('type');
-                        let value  = $(identity).attr('data-val');
-                        if (value == 0) {
-                            return;
-                        }
-                        if (typeof caman[filter] === 'function') {
-                            caman[filter](value);
-                        } else {
-                            console.error(`Filter [${filter}] not exists.`);
-                        }
-                    });
-                }
-
-                function resetFilters() {
-                    Object.keys(SLIDERS).forEach(function (identity) {
-                        let silder = $(identity);
-                        let value = SLIDERS[identity].val;
-                        // Resetn the value data, default value and default text of silder
-                        silder.attr('data-val', value);
-                        silder.slider('option', 'value', value);
-                        silder.find('.ui-slider-handle').text(value);
-                    });
-                }
 
                 // Reset button
                 modal.find('.reset').on('click', function (e) {
@@ -955,10 +901,17 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
                     resetCropBox();
                 });
 
+                // Save button
+                modal.find('.save').on('click', function (e) {
+                    //window.open(caman.toBase64());
+                });
+
                 // Toogle crop box when selecting it
                 modal.find('.container-collapse').on('shown.bs.collapse', function (e) {
                     let tool = $(this).parent().data('tool');
                     if (tool == 'crop') {
+                        // Align center for crop box
+                        alignCenterCropBox(curImgWidth, curImgHeight);
                         modal.find('.crop-box').show();
                     } else {
                         modal.find('.crop-box').hide();
@@ -996,18 +949,18 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
                         return;
                     }
                     // Resize image
-                    if (isLoadedImage) {
-                        caman.resize({width: curImgWidth, height: curImgHeight});
-                        applyFilters();
-                        caman.render();
-                    }
+                    caman.resize({width: curImgWidth, height: curImgHeight});
+                    applyFilters();
+                    caman.render();
                 });
+
                 // When resizing width of image
                 modal.on('change', 'input[name="resize-w"]', function (e) {
                     if (isKeepRatio('input[name="resize-keep-ratio"]')) {
                         modal.find('input[name="resize-h"]').val(Number($(this).val()) * ratioImage());
                     }
                 });
+
                 // When resizing height of image
                 modal.on('change', 'input[name="resize-h"]', function (e) {
                     if (isKeepRatio('input[name="resize-keep-ratio"]')) {
@@ -1033,16 +986,16 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
 
                 // Crop image
                 modal.on('click', '.apply-crop', function (e) {
-                    var left   = cropBox.offset().left - modal.find(CANVAS_ID).offset().left;
-                    var top    = cropBox.offset().top  - modal.find(CANVAS_ID).offset().top;
-                    var width  = cropBox.width();
-                    var height = cropBox.height();
+                    var left = cropBox.offset().left - modal.find(CANVAS_ID).offset().left;
+                    var top  = cropBox.offset().top  - modal.find(CANVAS_ID).offset().top;
+                    curImgWidth  = cropBox.width();
+                    curImgHeight = cropBox.height();
                     // Crop image
-                    caman.crop(width, height, left, top);
+                    caman.crop(curImgWidth, curImgHeight, left, top);
                     applyFilters();
                     caman.render();
                     // Align center for crop box
-                    alignCenterCropBox(width, height);
+                    alignCenterCropBox(curImgWidth, curImgHeight);
                 });
 
                 // Keep aspect ratio of image
@@ -1057,14 +1010,14 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
                     containment: CANVAS_ID,
                     revert: false,
                     disable: false,
-                    start: function(event, ui) { // when starting drag
-                        //
+                    start: function(event, ui) {
+                        // when starting drag
                     },
-                    drag: function(event, ui) { // when dragging
-                        //
+                    drag: function(event, ui) {
+                        // when dragging
                     },
-                    stop:function(event, ui) { // Dragging done
-                        // Track positions of dragging
+                    stop:function(event, ui) {
+                        // Dragging done
                     }
                 });
 
@@ -1076,9 +1029,9 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
                     saveEventState(e);
 
                     // When press and holder a corner of crop box via mouse
-                    modal.on('mousemove touchmove', resizing);
+                    modal.on('mousemove touchmove', resizeCropBox);
                     // When release the mouse
-                    modal.on('mouseup touchend', endResize);
+                    modal.on('mouseup touchend', endResizeCropBox);
                 });
 
                 // Save state of event that it starts pulling corners of crop box
@@ -1105,7 +1058,7 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
                 }
 
                 // Change size of crop box while pulling its corners
-                function resizing(e) {
+                function resizeCropBox(e) {
                     e.preventDefault();
 
                     // Turn off draggling crop box when pulling its corners
@@ -1114,9 +1067,6 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
                     var mouse={},width,height,left,top,offset=cropBox.offset(),$currentCropHandle=$(event_state.event.target);
                     mouse.x = (e.clientX || e.pageX || e.originalEvent.touches[0].clientX) + $(window).scrollLeft();
                     mouse.y = (e.clientY || e.pageY || e.originalEvent.touches[0].clientY) + $(window).scrollTop();
-
-                    // TODO: check if width or height of crop box after resized over width or height of container,
-                    // TODO: set width or height of crop box as width or height of container
 
                     // Position that crop box differently depending on the corner dragged and constraints
                     if ($currentCropHandle.hasClass('crop-point-bottom-right')) { // se
@@ -1181,29 +1131,66 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
                 }
 
                 // When finished pulling corners of crop box
-                function endResize(e) {
+                function endResizeCropBox(e) {
                     e.preventDefault();
                     // Turn off pulling corners of crop box
-                    modal.off('mouseup touchend', endResize);
-                    modal.off('mousemove touchmove', resizing);
+                    modal.off('mouseup touchend', endResizeCropBox);
+                    modal.off('mousemove touchmove', resizeCropBox);
                     // Turn on draggling crop box when finished pulling its corners
-                    modal.find('.crop-box').draggable({disable: false});
+                    cropBox.draggable({disable: false});
                 }
 
                 function alignCenterCropBox(wCropped, hCropped) {
                     let wCroppedCanvas = wCropped || cropBox.width();
+                    let hCroppedCanvas = hCropped || cropBox.hieght();
                     let topCropBoxHandleSeed = 4;
-                    cropBox.css('top', `calc(50% - ${wCroppedCanvas + topCropBoxHandleSeed}px)`);
+                    cropBox.css('width', wCroppedCanvas);
+                    cropBox.css('height', hCroppedCanvas);
+                    cropBox.css('top', `calc(50% - ${hCroppedCanvas + topCropBoxHandleSeed}px)`);
                     cropBox.css('left', `50%`);
                     cropBox.css('transform', `translate(-50%, -50%)`);
                 }
 
                 function resetCropBox() {
-                    cropBox.css('width', `200px`);
-                    cropBox.css('height', `200px`);
-                    cropBox.css('top', `calc(50% - 400px)`);
+                    cropBox.css('width', `${CROP_BOX_WIDTH}px`);
+                    cropBox.css('height', `${CROP_BOX_HEIGHT}px`);
+                    cropBox.css('top', `calc(50% - ${CANVAS_HEIGHT}px)`);
                     cropBox.css('left', `50%`);
                     cropBox.css('transform', `translate(-50%, -50%)`);
+                }
+
+                function enableResetBtn() {
+                    if (!IS_CHANGED_DATA) {
+                        IS_CHANGED_DATA = true;
+                        modal.find('.reset').removeClass('disabled').show();
+                    }
+                }
+
+                function applyFilters() {
+                    caman.revert(false);
+                    Object.keys(SLIDERS).forEach(function (identity) {
+                        let filter = $(identity).data('type');
+                        let value  = $(identity).attr('data-val');
+                        if (value == 0) {
+                            return;
+                        }
+                        if (typeof caman[filter] === 'function') {
+                            caman[filter](value);
+                        } else {
+                            console.error(`Filter [${filter}] not exists.`);
+                        }
+                    });
+                }
+
+                function resetFilters() {
+                    Object.keys(SLIDERS).forEach(function (identity) {
+                        let silder = $(identity);
+                        let value = SLIDERS[identity].val;
+                        // Resetn the value data, default value and default text of silder
+                        silder.attr('data-val', value);
+                        silder.slider('option', 'value', value);
+                        silder.find('.ui-slider-handle').text(value);
+                    });
                 }
 
                 function isKeepRatio(identity) {
@@ -1213,7 +1200,6 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
                 function ratioImage() {
                     return oriImgHeight / oriImgWidth;
                 }
-
             });
         });
     }
