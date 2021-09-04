@@ -241,13 +241,13 @@
                     <div class="col-3">
                         <div class="accordion" id="imageProcessor">
                             <!-- Resize -->
-                            <div class="accordion-item rounded-0">
+                            <div class="accordion-item rounded-0" data-tool="resize">
                                 <h2 class="accordion-header" id="headingResize">
                                     <button class="accordion-button shadow-none collapsed" data-bs-toggle="collapse" data-bs-target="#collapseResize" aria-expanded="false" aria-controls="collapseResize">
                                         <span><i class="bi bi-fullscreen"></i> Resize</span>
                                     </button>
                                 </h2>
-                                <div id="collapseResize" class="accordion-collapse collapse" aria-labelledby="headingResize" data-bs-parent="#imageProcessor">
+                                <div id="collapseResize" class="accordion-collapse container-collapse collapse" aria-labelledby="headingResize" data-bs-parent="#imageProcessor">
                                     <div class="accordion-body">
                                         <div class="input-group mb-3">
                                             <input type="text" name="resize-w" class="form-control" />
@@ -270,13 +270,13 @@
                                 </div>
                             </div>
                             <!-- Crop -->
-                            <div class="accordion-item">
+                            <div class="accordion-item" data-tool="crop">
                                 <h2 class="accordion-header" id="headingCrop">
                                     <button class="accordion-button shadow-none collapsed" data-bs-toggle="collapse" data-bs-target="#collapseCrop" aria-expanded="false">
                                         <span><i class="bi bi-crop"></i> Crop</span>
                                     </button>
                                 </h2>
-                                <div id="collapseCrop" class="accordion-collapse collapse" aria-labelledby="headingCrop" data-bs-parent="#imageProcessor">
+                                <div id="collapseCrop" class="accordion-collapse container-collapse collapse" aria-labelledby="headingCrop" data-bs-parent="#imageProcessor">
                                     <div class="accordion-body">
                                         <div class="form-check">
                                             <input class="form-check-input" type="checkbox" name="crop-keep-ratio" id="crop-keep-ratio" checked>
@@ -293,13 +293,13 @@
                                 </div>
                             </div>
                             <!-- Rotate -->
-                            <div class="accordion-item">
+                            <div class="accordion-item" data-tool="rotate">
                                 <h2 class="accordion-header" id="headingRotate">
                                     <button class="accordion-button shadow-none collapsed" data-bs-toggle="collapse" data-bs-target="#collapseRotate" aria-expanded="false" aria-controls="collapseRotate">
                                         <span><i class="bi bi-arrow-counterclockwise"></i> Rotate</span>
                                     </button>
                                 </h2>
-                                <div id="collapseRotate" class="accordion-collapse collapse" aria-labelledby="headingRotate" data-bs-parent="#imageProcessor">
+                                <div id="collapseRotate" class="accordion-collapse container-collapse collapse" aria-labelledby="headingRotate" data-bs-parent="#imageProcessor">
                                     <div class="accordion-body">
                                         <div class="d-grid">
                                             <button type="button" class="btn btn-outline-secondary shadow-none text-start mb-2 apply-counterclockwise">
@@ -315,13 +315,13 @@
                                 </div>
                             </div>
                             <!-- Adjust -->
-                            <div class="accordion-item">
+                            <div class="accordion-item" data-tool="adjust">
                                 <h2 class="accordion-header" id="headingAdjust">
                                     <button class="accordion-button shadow-none collapsed" data-bs-toggle="collapse" data-bs-target="#collapseAdjust" aria-expanded="false" aria-controls="collapseAdjust">
                                         <span><i class="bi bi-record-circle"></i> Adjust</span>
                                     </button>
                                 </h2>
-                                <div id="collapseAdjust" class="accordion-collapse collapse" aria-labelledby="headingAdjust" data-bs-parent="#imageProcessor">
+                                <div id="collapseAdjust" class="accordion-collapse container-collapse collapse" aria-labelledby="headingAdjust" data-bs-parent="#imageProcessor">
                                     <div class="accordion-body">
                                         <div class="mb-3">
                                             <label class="form-label">Brightness</label>
@@ -392,13 +392,13 @@
                                 </div>
                             </div>
                             <!-- Presets -->
-                            <div class="accordion-item rounded-0">
+                            <div class="accordion-item rounded-0" data-tool="presets">
                                 <h2 class="accordion-header" id="headingPresets">
                                     <button class="accordion-button shadow-none collapsed" data-bs-toggle="collapse" data-bs-target="#collapsePresets" aria-expanded="false" aria-controls="collapsePresets">
                                         <span><i class="bi bi-file-earmark-plus-fill"></i> Presets</span>
                                     </button>
                                 </h2>
-                                <div id="collapsePresets" class="accordion-collapse collapse" aria-labelledby="headingPresets" data-bs-parent="#imageProcessor">
+                                <div id="collapsePresets" class="accordion-collapse container-collapse collapse" aria-labelledby="headingPresets" data-bs-parent="#imageProcessor">
                                     <div class="accordion-body">
                                         <div class="p-4 mb-4 container-preset">
                                             <div class="card">

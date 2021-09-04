@@ -21,6 +21,7 @@
     <script src="./js/globals.js"></script>
     <script src="./js/context.js"></script>
     <script src="./js/filters.js"></script>
+    <script src="./js/image-editor.js"></script>
     <script src="./js/services.js"></script>
 </head>
 
@@ -771,6 +772,29 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
         var pathImageSelected = $(elementTarget).attr('data-path');
         var srcImageSelected = $(elementTarget).find('img').attr('src');
 
+        load('./modals/image-editor.html', function (classNameWrap) {
+            $(function() {
+                var modal = $(document).find('.modal-app');
+                $('#image-area').find('img').attr('src', srcImageSelected);
+
+                modal.modal('toggle');
+
+                modal.on('click', '.close', function (e) {
+                    modal.modal('hide');
+                });
+
+                modal.on('hide.bs.modal', function (e) {
+                    $(`.${classNameWrap}`).remove();
+                });
+
+                modal.on('shown.bs.modal', function (e) {
+                    
+                });
+            });
+        });
+
+        return;
+
         load('./modals/image-processor.html', function (classNameWrap) {
             $(function () {
                 var modal = $(document).find('.modal-app');
@@ -954,6 +978,16 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
                     img.src = srcImageSelected;
                 });
 
+                // Toogle crop box when selecting it
+                modal.find('.container-collapse').on('shown.bs.collapse', function (e) {
+                    let tool = $(this).parent().data('tool');
+                    if (tool == 'crop') {
+                        modal.find('.crop-box').show();
+                    } else {
+                        modal.find('.crop-box').hide();
+                    }
+                });
+
                 // Resize image
                 modal.on('click', '.apply-resize', function (e) {
                     // Current image size
@@ -1027,14 +1061,23 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
 
                 modal.on('click', '.apply-crop', function (e) {
                     var left   = cropBox.offset().left - $(canvas).offset().left;
-                    var top    = cropBox.offset().top - $(canvas).offset().top;
+                    var top    = cropBox.offset().top  - $(canvas).offset().top;
                     var width  = cropBox.width();
                     var height = cropBox.height();
 
-                    canvas.width = width;
-                    canvas.height = height;
+                    // canvas.width = width;
+                    // canvas.height = height;
 
-                    ctx.drawImage(img, left, top, width, height, 0, 0, width, height);
+                    // ctx.drawImage(img, left, top, width, height, 0, 0, width, height);
+                    Caman(CANVAS_ID, img, function () {
+                        // width, height, x, y
+                        this.crop(width, height, left, top);
+
+                        // Still have to call render!
+                        this.render(function () {
+                            img = this.image;
+                        });
+                    });
                 });
 
                 // Keep aspect ratio of image
