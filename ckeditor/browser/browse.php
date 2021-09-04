@@ -19,6 +19,7 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/js/bootstrap.min.js" integrity="sha384-cn7l7gDp0eyniUwwAZgrzD06kc/tftFf19TOAs2zVinnD/C7E91j9yyk5//jjpt/" crossorigin="anonymous"></script>
     <script src="./js/globals.js"></script>
     <script src="./js/context.js"></script>
+    <script src="./js/filters.js"></script>
     <script src="./js/services.js"></script>
 </head>
 
@@ -775,14 +776,15 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
                 var MIN_VALUE_ADJUST = -100;
                 var MAX_VALUE_ADJUST = 100;
                 var DEF_VALUE_ADJUST = 0;
-                var SLIDER_BARS_ADJUST = [
-                    '#slider-brightness',
-                    '#slider-contrast',
-                    '#slider-saturation',
-                    '#slider-exposure',
-                    '#slider-sepia',
-                    '#slider-sharpen',
-                ];
+                var SLIDER_BARS_ADJUST = {
+                    '#slider-blur'      : {min: MIN_VALUE_ADJUST, max: MAX_VALUE_ADJUST},
+                    '#slider-brightness': {min: MIN_VALUE_ADJUST, max: MAX_VALUE_ADJUST},
+                    '#slider-contrast'  : {min: MIN_VALUE_ADJUST, max: MAX_VALUE_ADJUST},
+                    '#slider-saturation': {min: MIN_VALUE_ADJUST, max: MAX_VALUE_ADJUST},
+                    '#slider-exposure'  : {min: MIN_VALUE_ADJUST, max: MAX_VALUE_ADJUST},
+                    '#slider-sepia'     : {min: 0, max: MAX_VALUE_ADJUST},
+                    '#slider-sharpen'   : {min: 0, max: MAX_VALUE_ADJUST},
+                };
                 var CANVAS_DEFAULT_HEIGHT = 400;
                 var CANVAS_DEFAULT_WIDTH  = 500;
 
@@ -820,78 +822,57 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
 
                 // Handle image after modal shown
                 modal.on('shown.bs.modal', function (e) {
+                    var filters = {};
                     // Show silder bars (adjust tool)
-                    SLIDER_BARS_ADJUST.forEach(function (identity) {
+                    Object.keys(SLIDER_BARS_ADJUST).forEach(function (identity) {
                         $(identity).slider({
                             orientation: "horizontal", // vertical
                             animate: true,
                             range: 'min',
-                            min: MIN_VALUE_ADJUST,
-                            max: MAX_VALUE_ADJUST,
+                            min: SLIDER_BARS_ADJUST[identity].min,
+                            max: SLIDER_BARS_ADJUST[identity].max,
                             value: DEF_VALUE_ADJUST,
                             step: 1,
                             slide: debounce(function (event, ui) {
                                 $(this).find('.ui-slider-handle').text(ui.value);
                                 var curValue = parseInt(ui.value);
-                                var imgX = 0;
-                                var imgY = 0;
-                                ctx.drawImage(img, imgX, imgY, canvas.width, canvas.height);
-                                var scannedImg  = ctx.getImageData(imgX, imgY, canvas.width, canvas.height);
-                                var scannedData = scannedImg.data; // raw pixel data in array
 
-                                console.log('curValue => ', curValue)
+                                console.log('curValue => ', curValue, filters)
 
                                 switch ($(this).attr('id')) {
+                                    case 'slider-blur':
+                                        var blur = curValue;
+                                        filters.blur = `blur(${blur}px)`;
+                                        break;
                                     case 'slider-brightness':
-                                        // var imgX = 0;
-                                        // var imgY = 0;
-                                        // ctx.drawImage(img, imgX, imgY, canvas.width, canvas.height);
-                                        // var scannedImg  = ctx.getImageData(imgX, imgY, canvas.width, canvas.height);
-                                        // var scannedData = scannedImg.data; // raw pixel data in array
-                                        var brightnessMul = 1 + curValue / 100; // brightness multiplier
-
-                                        for (var i = 0; i < scannedData.length; i += 4) {
-                                            var r = scannedData[i];     // Extract original red color [0 to 255]
-                                            var g = scannedData[i + 1]; // Extract green
-                                            var b = scannedData[i + 2]; // Extract blue
-
-                                            brightenedR = brightnessMul * r;
-                                            brightenedG = brightnessMul * g;
-                                            brightenedB = brightnessMul * b;
-
-                                            /**
-                                             *
-                                             * Remember, you should make sure the values brightenedRed,
-                                             * brightenedGreen, and brightenedBlue are between
-                                             * 0 and 255. You can do this by using
-                                             * Math.max(0, Math.min(255, brightenedRed))
-                                             *
-                                             */
-                                            scannedData[i]   = Math.max(0, Math.min(255, brightenedR));
-                                            scannedData[i+1] = Math.max(0, Math.min(255, brightenedG));
-                                            scannedData[i+2] = Math.max(0, Math.min(255, brightenedB));
-                                        }
-                                        scannedImg.data = scannedData;
-                                        ctx.putImageData(scannedImg, imgX, imgY);
+                                        // Brightness multiplier
+                                        var brightness = 1 + curValue / 100;
+                                        filters.brightness = `brightness(${brightness})`;
                                         break;
                                     case 'slider-contrast':
-                                        var contrast = curValue * 2.55;
-                                        if (contrast > 0) {
-                                            for (var i = 0; i < scannedData.length; i += 4) {
-                                                scannedData[i]     += (255 - scannedData[i])     * contrast / 255;            // red
-                                                scannedData[i + 1] += (255 - scannedData[i + 1]) * contrast / 255;    // green
-                                                scannedData[i + 2] += (255 - scannedData[i + 2]) * contrast / 255;    // blue
-                                            }
-                                        } else if (contrast < 0) {
-                                            for (var i = 0; i < scannedData.length; i += 4) {
-                                                scannedData[i]     += scannedData[i]     * (contrast) / 255;                  // red
-                                                scannedData[i + 1] += scannedData[i + 1] * (contrast) / 255;          // green
-                                                scannedData[i + 2] += scannedData[i + 2] * (contrast) / 255;          // blue
-                                            }
-                                        }
-                                        scannedImg.data = scannedData;
-                                        ctx.putImageData(scannedImg, imgX, imgY);
+                                        var contrast = 1 + curValue / 100;
+                                        filters.contrast = `contrast(${contrast})`;
                                         break;
+                                    case 'slider-saturation':
+                                        var saturation = 1 + curValue / 100;
+                                        filters.saturate = `saturate(${saturation})`;
+                                        break;
+                                    case 'slider-sepia':
+                                        var sepia = curValue / 100;
+                                        filters.sepia = `sepia(${sepia})`;
+                                        break;
+                                    case 'slider-sharpen':
+                                        var vSharpen = curValue / 100;
+                                        // filters.invert = `invert(${vSharpen})`;
+                                        sharpen(ctx, canvas.width, canvas.height, vSharpen);
+                                        // return;
+                                        break;
+                                }
+                                if (Object.keys(filters).length > 0) {
+                                    ctx.filter = Object.values(filters).join(' ');
+                                    console.log(ctx.filter)
+                                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                                    // ctx.save();
                                 }
                             }),
                             create: function (event, ui) {
