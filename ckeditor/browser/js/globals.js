@@ -132,3 +132,49 @@ function download(canvas, filename, mime, quality) {
     // Dispatch click event
     link.dispatchEvent(new MouseEvent('click'));
 }
+
+function isFullScreen() {
+    return document.fullScreenElement ||
+           document.mozFullScreen ||
+           document.webkitIsFullScreen;
+}
+
+function openFullScreen(elem) {
+    if (isFullScreen()) {
+        return;
+    }
+    var w = elem || document.documentElement; // <html>
+    var fullscreen = w.requestFullscreen ||
+                     w.webkitRequestFullscreen || // Safari
+                     w.mozRequestFullScreen ||
+                     w.msRequestFullscreen; // IE11
+    if (fullscreen) {
+        fullscreen.call(w);
+    } else if (typeof window.ActiveXObject !== "undefined") { // Older IE
+        var wscript = new ActiveXObject("WScript.Shell");
+        if (wscript !== null) {
+            wscript.SendKeys("{F11}");
+        }
+    }
+}
+
+function closeFullScreen() {
+    if (!isFullScreen()) {
+        return;
+    }
+    var w = document;
+    var exitFullScreen = w.exitFullscreen ||
+                         w.webkitExitFullscreen || // Safari
+                         w.msExitFullscreen || // IE11
+                         w.cancelFullScreen ||
+                         w.webkitCancelFullScreen ||
+                         w.mozCancelFullScreen;
+    if (typeof exitFullScreen === 'function') {
+        exitFullScreen.call(w);
+    } else if (typeof window.ActiveXObject !== "undefined") { // Older IE.
+        var wscript = new ActiveXObject("WScript.Shell");
+        if (wscript !== null) {
+            wscript.SendKeys("{F11}");
+        }
+    }
+}

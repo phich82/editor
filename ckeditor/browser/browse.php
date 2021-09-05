@@ -70,29 +70,35 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
     <div class="container-fluid wrapper" style="background-color: #f7f8f9;">
         <div class="header row border-header" style="padding: 10px;">
             <div class="col-8">
+                <!-- Upload -->
                 <button class="btn btn-light bg-white border border-secondary upload">
                     <i class="bi bi-upload"></i>
                     <span>Upload</span>
                 </button>
                 <!-- Hide input file -->
                 <input type="file" name="uploadfile" id="uploadfile" style="display: none;" />
+                <!-- New Subfolder -->
                 <button class="btn btn-light bg-white border border-secondary subfolder">
                     <i class="bi bi-folder-plus"></i>
                     <span>New Subfolder</span>
                 </button>
-                <button class="btn btn-light bg-white border border-secondary">
+                <!-- Maximize Screen -->
+                <button class="btn btn-light bg-white border border-secondary maximize-screen">
                     <i class="bi bi-arrows-fullscreen"></i>
                     <span>Maximize</span>
                 </button>
-                <button class="btn btn-light bg-white border border-secondary">
+                <!-- Minimize Screen -->
+                <button class="btn btn-light bg-white border border-secondary minimize-screen hidden">
                     <i class="bi bi-fullscreen-exit"></i>
                     <span>Minimize</span>
                 </button>
             </div>
             <div class="col-4">
                 <div class="row">
-                    <input type="text" name="search" id="search" placeholder="Search..." class="form-control col" />
-                    <button class="btn btn-light col-2">
+                    <!-- Search Button -->
+                    <input type="text" name="search" id="search" placeholder="Search..." class="form-control col shadow-none" />
+                    <!-- Setting Button -->
+                    <button class="btn btn-light col-2 shadow-none" data-bs-toggle="offcanvas" data-bs-target="#offcanvasSetting" aria-controls="offcanvasSetting">
                         <i class="bi bi-gear-fill"></i>
                     </button>
                 </div>
@@ -133,6 +139,89 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
             <div class="col-9 main-content"></div><!-- /.main-content -->
         </div><!-- /.content -->
     </div>
+
+    <!-- Right Transition Modal -->
+    <div class="offcanvas offcanvas-end settings-modal" data-bs-scroll="false" data-bs-backdrop="false" tabindex="-1" id="offcanvasSetting" aria-labelledby="offcanvasSettingLabel">
+        <div class="offcanvas-header">
+            <h5 class="offcanvas-title" id="offcanvasSettingLabel">Settings</h5>
+            <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+        </div>
+        <div class="offcanvas-body">
+            <div class="settings">
+                <label class="mb-2">Settings</label>
+                <div class="form-check mb-2">
+                    <input class="form-check-input" type="checkbox" name="filename-setting" id="filename-setting">
+                    <label class="form-check-label" for="filename-setting">
+                        File Name
+                    </label>
+                </div>
+                <div class="form-check mb-2">
+                    <input class="form-check-input" type="checkbox" name="date-setting" id="date-setting">
+                    <label class="form-check-label" for="date-setting">
+                        Date
+                    </label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="filesize-setting" id="filesize-setting">
+                    <label class="form-check-label" for="filesize-setting">
+                        File Size
+                    </label>
+                </div>
+            </div>
+            <div class="view mt-3">
+                <label class="mb-2">View</label>
+                <div class="form-check mb-2">
+                    <input class="form-check-input" type="radio" name="view-setting" id="list-view">
+                    <label class="form-check-label" for="filename-setting">
+                        List
+                    </label>
+                </div>
+                <div class="form-check mb-2">
+                    <input class="form-check-input" type="radio" name="view-setting" id="thumbnails-view" checked>
+                    <label class="form-check-label" for="date-setting">
+                        Thumbnails
+                    </label>
+                </div>
+                <div class="form-check mb-2">
+                    <input class="form-check-input" type="radio" name="view-setting" id="compact-view">
+                    <label class="form-check-label" for="filesize-setting">
+                        Compact
+                    </label>
+                </div>
+            </div>
+            <div class="sortby mt-3">
+                <label class="mb-2">Sort by</label>
+                <select class="form-select form-select-sm" aria-label=".form-select-sm sortby-setting">
+                    <option value="1" selected>File Name</option>
+                    <option value="2">File Size</option>
+                    <option value="3">Date</option>
+                </select>
+            </div>
+            <div class="orderby mt-3">
+                <label class="mb-2">Order by</label>
+                <div class="form-check mb-2">
+                    <input class="form-check-input" type="radio" name="orderby-setting" id="orderby-asc" checked>
+                    <label class="form-check-label" for="orderby-asc">
+                        Ascending
+                    </label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="orderby-setting" id="orderby-desc">
+                    <label class="form-check-label" for="orderby-desc">
+                        Descending
+                    </label>
+                </div>
+            </div>
+            <div class="thumbnail-size mt-3 mb-3">
+                <label class="form-label mb-2">Thumbnail Size</label>
+                <div class="d-flex flex-row align-items-center justify-content-between">
+                    <input type="text" class="form-control form-control-sm me-4 text-center" name="thumbnail-size" value="150">
+                    <input type="range" class="form-range slider-thumbnail-size" min="150" max="500" step="4" value="150">
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- ./Right Transition Modal -->
 
     <!-- Modal -->
     <div class="modal fade modal-common" id="modal" tabindex="-1" role="dialog" aria-labelledby="modalLabel" aria-hidden="true">
@@ -911,7 +1000,7 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
                     let tool = $(this).parent().data('tool');
                     if (tool == 'crop') {
                         // Align center for crop box
-                        alignCenterCropBox(curImgWidth, curImgHeight);
+                        alignCenterCropBox();
                         modal.find('.crop-box').show();
                     } else {
                         modal.find('.crop-box').hide();
@@ -995,7 +1084,7 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
                     applyFilters();
                     caman.render();
                     // Align center for crop box
-                    alignCenterCropBox(curImgWidth, curImgHeight);
+                    alignCenterCropBox();
                 });
 
                 // Keep aspect ratio of image
@@ -1140,13 +1229,13 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
                     cropBox.draggable({disable: false});
                 }
 
-                function alignCenterCropBox(wCropped, hCropped) {
-                    let wCroppedCanvas = wCropped || cropBox.width();
-                    let hCroppedCanvas = hCropped || cropBox.hieght();
+                function alignCenterCropBox(wCanvas, hCanvas) {
                     let topCropBoxHandleSeed = 4;
-                    cropBox.css('width', wCroppedCanvas);
-                    cropBox.css('height', hCroppedCanvas);
-                    cropBox.css('top', `calc(50% - ${hCroppedCanvas + topCropBoxHandleSeed}px)`);
+                    wCanvas = wCanvas || $(CANVAS_ID).width();
+                    hCanvas = hCanvas || $(CANVAS_ID).height();
+                    cropBox.css('width', wCanvas);
+                    cropBox.css('height', hCanvas);
+                    cropBox.css('top', `calc(50% - ${hCanvas + topCropBoxHandleSeed}px)`);
                     cropBox.css('left', `50%`);
                     cropBox.css('transform', `translate(-50%, -50%)`);
                 }
@@ -1202,6 +1291,10 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
                 }
             });
         });
+    }
+
+    function bindContextMenu() {
+        ContextMenu.start(configs);
     }
 
     var configs = {
@@ -1298,9 +1391,6 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
             },
             'image.edit': function (elementTarget, event) {
                 showImageProcessorModal(elementTarget);
-                // Service.Image.edit(function (success, data) {
-                    
-                // });
             },
             'image.rename': function (elementTarget, event) {
                 showRenameFileModal(elementTarget);
@@ -1311,13 +1401,33 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
         }
     };
 
-    function bindContextMenu() {
-        ContextMenu.start(configs);
-    }
-
     $(function() {
         // Bind context menu
         bindContextMenu();
+
+        // Maximize screen (fullscreen)
+        $('.maximize-screen').on('click', function (e) {
+            e.preventDefault();
+            openFullScreen();
+            $(this).hide();
+            $('.minimize-screen').show();
+        });
+
+        // Minimize screen (exit fullscreen)
+        $('.minimize-screen').on('click', function (e) {
+            e.preventDefault();
+            closeFullScreen();
+            $(this).hide();
+            $('.maximize-screen').show();
+        });
+
+        $(window).on('resize', function (e) {
+            // Show fullscreen button if exit fullscreen
+            if (!isFullScreen() && $('.maximize-screen').is(':hidden')) {
+                $('.minimize-screen').hide();
+                $('.maximize-screen').show();
+            }
+        });
 
         // Reset input file after modal closed
         $('.modal').on('hide.bs.modal', function (e) {
@@ -1335,7 +1445,7 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
         })
 
         // Upload file
-        $(document).on('click', '.upload', function () {
+        $(document).on('click', '.upload', function (e) {
             // Open dialog for choosing upload file
             $('#uploadfile').click();
         });

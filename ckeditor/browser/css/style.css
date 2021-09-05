@@ -9,10 +9,10 @@
     border-color: 1px solid #ccc !important;
 }
 .border-header {
-    border: 1px solid;
+    border: 1px solid #ccc;
 }
 .border-content {
-    border: 1px solid;
+    border: 1px solid #ccc;
     border-top: none;
 }
 .border-top-none {
@@ -21,6 +21,7 @@
 
 .content {
     padding: 0;
+    min-height: 500px;
 }
 
 .reset-pad-col {
@@ -182,4 +183,16 @@
 .container-preset .card {
     border: none;
     background-color: #f6f8fa;
+}
+
+.settings-modal {
+    width: 300px;
+}
+
+.settings-modal .offcanvas-header {
+    background-color: #f7f8f9;
+}
+
+.settings-modal .thumbnail-size input[name="thumbnail-size"] {
+    width: 50px;
 }
