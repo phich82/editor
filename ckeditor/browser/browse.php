@@ -992,7 +992,32 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
 
                 // Save button
                 modal.find('.save').on('click', function (e) {
-                    //window.open(caman.toBase64());
+                    let blob = base64ToBlob(caman.toBase64());
+                    let folderSelected = basepath(pathImageSelected);
+                    let filename = getFileName(pathImageSelected);
+                    let dataForm = new FormData();
+                    dataForm.append('file', blob, filename);
+                    dataForm.append('folder', folderSelected);
+
+                    $.ajax({
+                        url: '../uploader/do_upload.php',
+                        method: 'POST',
+                        data: dataForm,
+                        dataType: 'json',
+                        contentType: false,
+                        cache: false,
+                        processData: false,
+                        success: function(response, status, jqXHR) {
+                            if (response && response.success) {
+                                
+                            } else {
+                              
+                            }
+                        },
+                        error: function (jqXHR, textStatus, errorThrown) {
+
+                        }
+                    });
                 });
 
                 // Toogle crop box when selecting it
@@ -1533,7 +1558,6 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
                 cache: false,
                 processData: false,
                 success: function(response, status, jqXHR) {
-                    console.log('response => ', response)
                     if (response && response.success) {
                         $('.modal').modal('hide');
                         // Reload images at folder selected
@@ -1546,9 +1570,9 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
                     $('.modal .loader').hide();
                 },
                 error: function (jqXHR, textStatus, errorThrown) {
-                    console.log('error =>', jqXHR, textSatatus, errorThrown);
                     $('.modal .cancelok').show();
                     $('.modal .uploaderror').html(jqXHR.responseText);
+                    $('.modal .loader').hide();
                 }
             });
         });

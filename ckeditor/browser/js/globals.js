@@ -79,6 +79,19 @@ function getFileName(path) {
     return path.split('/').pop();
 }
 
+// Get base path  from path
+function basepath(path) {
+    if (!path) {
+        return false;
+    }
+    let parts = path.split('/');
+    let filename = parts.pop();
+    if (filename.split('.').length > 1) {
+        return parts.join('/');
+    }
+    return path;
+}
+
 function createWrapper(callback, className) {
     callback = typeof callback === 'function' ? callback : function () {};
     className = className || 'wrap-modal-app';
