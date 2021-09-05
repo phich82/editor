@@ -863,7 +863,7 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
 
         load('./modals/image-processor.html', function (classNameWrap) {
             $(function () {
-                var modal = $(document).find('.modal-app');
+                var modal = $('.' + classNameWrap).find('.modal-app');
 
                 var CANVAS_ID = '#canvas';
                 var CANVAS_HEIGHT = 400;
@@ -992,6 +992,21 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
 
                 // Save button
                 modal.find('.save').on('click', function (e) {
+                    var processingModal;
+                    var isSaved = false;
+                    loadModal('./modals/processing.html', function (_wrapClassName, _modal) {
+                        processingModal = _modal;
+                        // Hide all modals, reload images after click on OK button
+                        processingModal.on('click', '.ok', function () {
+                            // Hide all modals
+                            processingModal.modal('hide');
+                            isSaved && modal.modal('hide');
+                            // Reload image area
+                            let selectedCurrentFolder = $('.folder-selected').attr('data-path');
+                            showImages(selectedCurrentFolder);
+                        });
+                    }, 'wrap-modal-processing', 1052);
+
                     let blob = base64ToBlob(caman.toBase64());
                     let folderSelected = basepath(pathImageSelected);
                     let filename = getFileName(pathImageSelected);
@@ -1008,14 +1023,23 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
                         cache: false,
                         processData: false,
                         success: function(response, status, jqXHR) {
+                            let bodyModal = processingModal.find('.message');
+                            // Turn off loading spiner
+                            bodyModal.find('.loader').hide();
+                            // Show message
                             if (response && response.success) {
-                                
+                                isSaved = true;
+                                bodyModal.html('<p class="success m-0">Image already saved successfully.</p>');
                             } else {
-                              
+                                bodyModal.html('<p class="error m-0">'+response.error+'</p>');
                             }
+                            // Show OK button
+                            processingModal.find('.modal-footer').show();
                         },
                         error: function (jqXHR, textStatus, errorThrown) {
-
+                            processingModal.find('.message').find('.loader').hide();
+                            processingModal.find('.message').html('<p class="error m-0">'+jqXHR.responseText+'</p>');
+                            processingModal.find('.modal-footer').show();
                         }
                     });
                 });

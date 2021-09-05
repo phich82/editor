@@ -92,23 +92,46 @@ function basepath(path) {
     return path;
 }
 
-function createWrapper(callback, className) {
+function createWrapper(callback, className, zIndex) {
     callback = typeof callback === 'function' ? callback : function () {};
     className = className || 'wrap-modal-app';
+    zIndex = typeof zIndex === 'number' ? zIndex : 1051;
     $('body').append(`
-        <div class="wrap-modal-app"
-             style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; z-index: 2000;"
+        <div class="${className}"
+             style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; z-index: ${zIndex};"
         ></div>
     `);
     callback(className);
 }
 
-function load(pathFile, callback, classNameWrap) {
+function load(pathFile, callback, classNameWrap, zIndex) {
     createWrapper(function (_classNameWrap) {
         $('body').find(`.${_classNameWrap}`).load(pathFile, function () {
             callback(_classNameWrap);
         });
-    }, classNameWrap);
+    }, classNameWrap, zIndex);
+}
+
+function loadModal(pathFile, callback, classNameWrap, zIndex) {
+    load(pathFile, function (_classNameWrap) {
+        $(function () {
+            var modalContainer = $('.'+_classNameWrap).find('.modal-app');
+            // Open modal
+            modalContainer.modal('toggle');
+            // Click on CLOSE button
+            modalContainer.on('click', '.close', function (e) {
+                modalContainer.modal('hide');
+            });
+            // Remove container of modal from DOM when close modal
+            modalContainer.on('hide.bs.modal', function (e) {
+                $(`.${_classNameWrap}`).remove();
+            });
+            // Change zIndex for backdrop
+            modalContainer.closest('body').find('.modal-backdrop').css('zIndex', zIndex - 1);
+            // Callback
+            callback(_classNameWrap, modalContainer);
+        });
+    }, classNameWrap, zIndex);
 }
 
 function debounce (func, delay) {
