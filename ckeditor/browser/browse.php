@@ -1179,6 +1179,10 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
                     event_state.container_height = cropBox.height();
                     event_state.container_left   = cropBox.offset().left;
                     event_state.container_top    = cropBox.offset().top;
+                    event_state.canvas_width     = $(CANVAS_ID).width();
+                    event_state.canvas_height    = $(CANVAS_ID).height();
+                    event_state.canvas_left      = $(CANVAS_ID).offset().left;
+                    event_state.canvas_top       = $(CANVAS_ID).offset().top;
                     event_state.mouse_x = (e.clientX || e.pageX || e.originalEvent.touches[0].clientX) + $(window).scrollLeft();
                     event_state.mouse_y = (e.clientY || e.pageY || e.originalEvent.touches[0].clientY) + $(window).scrollTop();
 
@@ -1197,12 +1201,12 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
 
                 // Change size of crop box while pulling its corners
                 function resizeCropBox(e) {
-                    e.preventDefault();
+                    // e.preventDefault();
 
                     // Turn off draggling crop box when pulling its corners
                     cropBox.draggable({disable: true});
 
-                    var mouse={},width,height,left,top,offset=cropBox.offset(),$currentCropHandle=$(event_state.event.target);
+                    var mouse={},width,height,left,top,dxCanvasCropBox,dyCanvasCropBox,offset=cropBox.offset(),$currentCropHandle=$(event_state.event.target);
                     mouse.x = (e.clientX || e.pageX || e.originalEvent.touches[0].clientX) + $(window).scrollLeft();
                     mouse.y = (e.clientY || e.pageY || e.originalEvent.touches[0].clientY) + $(window).scrollTop();
 
@@ -1212,6 +1216,15 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
                         height = mouse.y - event_state.container_top;
                         left   = event_state.container_left;
                         top    = event_state.container_top;
+                        // If width/height of crop box is over canvas width/height, set it inside canvas
+                        dxCanvasCropBox = left - event_state.canvas_left;
+                        dyCanvasCropBox = top  - event_state.canvas_top;
+                        if (width + dxCanvasCropBox > event_state.canvas_width) {
+                            width = event_state.canvas_width - dxCanvasCropBox;
+                        }
+                        if (height + dyCanvasCropBox > event_state.canvas_height) {
+                            height = event_state.canvas_height - dyCanvasCropBox;
+                        }
                     } else if ($currentCropHandle.hasClass('crop-point-bottom-left')) { // sw
                         width  = event_state.container_width - (mouse.x - event_state.container_left);
                         height = mouse.y  - event_state.container_top;
@@ -1270,7 +1283,7 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
 
                 // When finished pulling corners of crop box
                 function endResizeCropBox(e) {
-                    e.preventDefault();
+                    // e.preventDefault();
                     // Turn off pulling corners of crop box
                     modal.off('mouseup touchend', endResizeCropBox);
                     modal.off('mousemove touchmove', resizeCropBox);
