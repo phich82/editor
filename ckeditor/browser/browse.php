@@ -1206,7 +1206,15 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
                     // Turn off draggling crop box when pulling its corners
                     cropBox.draggable({disable: true});
 
-                    var mouse={},width,height,left,top,dxCanvasCropBox,dyCanvasCropBox,offset=cropBox.offset(),$currentCropHandle=$(event_state.event.target);
+                    var mouse={},
+                        width,
+                        height,
+                        left,
+                        top,
+                        maxWidth,
+                        maxHeight,
+                        //offset=cropBox.offset(),
+                        $currentCropHandle=$(event_state.event.target);
                     mouse.x = (e.clientX || e.pageX || e.originalEvent.touches[0].clientX) + $(window).scrollLeft();
                     mouse.y = (e.clientY || e.pageY || e.originalEvent.touches[0].clientY) + $(window).scrollTop();
 
@@ -1217,27 +1225,63 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
                         left   = event_state.container_left;
                         top    = event_state.container_top;
                         // If width/height of crop box is over canvas width/height, set it inside canvas
-                        dxCanvasCropBox = left - event_state.canvas_left;
-                        dyCanvasCropBox = top  - event_state.canvas_top;
-                        if (width + dxCanvasCropBox > event_state.canvas_width) {
-                            width = event_state.canvas_width - dxCanvasCropBox;
+                        let dxCanvasCropBox = left - event_state.canvas_left;
+                        let dyCanvasCropBox = top  - event_state.canvas_top;
+                        maxWidth  = event_state.canvas_width  - dxCanvasCropBox;
+                        maxHeight = event_state.canvas_height - dyCanvasCropBox;
+                        if (width > maxWidth) {
+                            width = maxWidth;
                         }
-                        if (height + dyCanvasCropBox > event_state.canvas_height) {
-                            height = event_state.canvas_height - dyCanvasCropBox;
+                        if (height > maxHeight) {
+                            height = maxHeight;
                         }
                     } else if ($currentCropHandle.hasClass('crop-point-bottom-left')) { // sw
                         width  = event_state.container_width - (mouse.x - event_state.container_left);
-                        height = mouse.y  - event_state.container_top;
+                        height = mouse.y - event_state.container_top;
                         left   = mouse.x;
                         top    = event_state.container_top;
+                        // If width/height of crop box is over canvas width/height, set it inside canvas
+                        let dxCanvasCropBox = event_state.canvas_left + event_state.canvas_width - event_state.container_width - event_state.container_left;
+                        let dyCanvasCropBox = top  - event_state.canvas_top;
+                        maxWidth  = event_state.canvas_width  - dxCanvasCropBox;
+                        maxHeight = event_state.canvas_height - dyCanvasCropBox;
+                        if (width < 0) {
+                            width = 0;
+                            left = maxWidth + event_state.canvas_left;
+                        } else if (width > maxWidth) {
+                            width = maxWidth;
+                            left  = event_state.canvas_left;
+                        }
+                        if (height > maxHeight) {
+                            height = maxHeight;
+                        }
                     } else if ($currentCropHandle.hasClass('crop-point-top-left')) { // nw
-                        width  = event_state.container_width - (mouse.x - event_state.container_left);
+                        width  = event_state.container_width  - (mouse.x - event_state.container_left);
                         height = event_state.container_height - (mouse.y - event_state.container_top);
                         left   = mouse.x;
                         top    = mouse.y;
                         // When press and hold SHIFT
                         if (constraint || e.shiftKey) {
                             top = mouse.y - ((width / event_state.container_width * event_state.container_height) - height);
+                        }
+                        // If width/height of crop box is over canvas width/height, set it inside canvas
+                        let dxCanvasCropBox = event_state.canvas_left + event_state.canvas_width  - event_state.container_width  - event_state.container_left;
+                        let dyCanvasCropBox = event_state.canvas_top  + event_state.canvas_height - event_state.container_height - event_state.container_top;
+                        maxWidth  = event_state.canvas_width  - dxCanvasCropBox;
+                        maxHeight = event_state.canvas_height - dyCanvasCropBox;
+                        if (width < 0) {
+                            width = 0;
+                            left = maxWidth + event_state.canvas_left;
+                        } else if (width > maxWidth) {
+                            width = maxWidth;
+                            left  = event_state.canvas_left;
+                        }
+                        if (height < 0) {
+                            height = 0;
+                            top = maxHeight + event_state.canvas_top;
+                        } else if (height > maxHeight) {
+                            height = maxHeight;
+                            top = event_state.canvas_top;
                         }
                     } else if ($currentCropHandle.hasClass('crop-point-top-right')) { // ne
                         width  = mouse.x - event_state.container_left;
@@ -1248,26 +1292,73 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
                         if (constraint || e.shiftKey){
                             top = mouse.y - ((width / event_state.container_width * event_state.container_height) - height);
                         }
+                        // If width/height of crop box is over canvas width/height, set it inside canvas
+                        let dxCanvasCropBox = left - event_state.canvas_left;
+                        let dyCanvasCropBox = event_state.canvas_top + event_state.canvas_height - event_state.container_top   - event_state.container_height;
+                        maxWidth  = event_state.canvas_width  - dxCanvasCropBox;
+                        maxHeight = event_state.canvas_height - dyCanvasCropBox;
+                        if (width > maxWidth) {
+                            width = maxWidth;
+                        }
+                        if (height < 0) {
+                            height = 0;
+                            top = maxHeight + event_state.canvas_top;
+                        } else if (height > maxHeight) {
+                            height = maxHeight;
+                            top = event_state.canvas_top;
+                        }
                     } else if ($currentCropHandle.hasClass('crop-point-top')) { // n
                         width  = event_state.container_width;
                         height = event_state.container_height - (mouse.y - event_state.container_top);
                         left   = event_state.container_left;
                         top    = mouse.y;
+                        // If width/height of crop box is over canvas width/height, set it inside canvas
+                        let dyCanvasCropBox = event_state.canvas_top + event_state.canvas_height - event_state.container_top   - event_state.container_height;
+                        maxHeight = event_state.canvas_height - dyCanvasCropBox;
+                        if (height < 0) {
+                            height = 0
+                            top = maxHeight + event_state.canvas_top;
+                        } else if (height > maxHeight) {
+                            height = maxHeight;
+                            top = event_state.canvas_top;
+                        }
                     } else if ($currentCropHandle.hasClass('crop-point-bottom')) { // s
                         width  = event_state.container_width;
                         height = mouse.y - event_state.container_top;
                         left   = event_state.container_left;
                         top    = event_state.container_top;
+                        // If width/height of crop box is over canvas width/height, set it inside canvas
+                        let dyCanvasCropBox = event_state.container_top - event_state.canvas_top;
+                        maxHeight = event_state.canvas_height - dyCanvasCropBox;
+                        if (height > maxHeight) {
+                            height = maxHeight;
+                        }
                     } else if ($currentCropHandle.hasClass('crop-point-left')) { // w
                         width  = event_state.container_width - (mouse.x - event_state.container_left);
                         height = event_state.container_height;
                         left   = mouse.x;
                         top    = event_state.container_top;
+                        // If width/height of crop box is over canvas width/height, set it inside canvas
+                        let dxCanvasCropBox = event_state.canvas_left + event_state.canvas_width - event_state.container_left - event_state.container_width;
+                        maxWidth = event_state.canvas_width - dxCanvasCropBox;
+                        if (width < 0) {
+                            width = 0;
+                            left  = event_state.container_left + event_state.container_width;
+                        } else if (width > maxWidth) {
+                            width = maxWidth;
+                            left  = event_state.canvas_left;
+                        }
                     } else if ($currentCropHandle.hasClass('crop-point-right')) { // e
                         width  = mouse.x - event_state.container_left;
                         height = event_state.container_height;
                         left   = event_state.container_left;
                         top    = event_state.container_top;
+                        // If width/height of crop box is over canvas width/height, set it inside canvas
+                        let dxCanvasCropBox = event_state.container_left - event_state.canvas_left;
+                        maxWidth = event_state.canvas_width - dxCanvasCropBox;
+                        if (width > maxWidth) {
+                            width = maxWidth;
+                        }
                     }
 
                     // Optionally maintain aspect ratio (press and hold SHIFT)
