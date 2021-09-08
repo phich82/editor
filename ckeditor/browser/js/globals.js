@@ -214,3 +214,27 @@ function closeFullScreen() {
         }
     }
 }
+
+function disableButton(identity) {
+    if (!identity) {
+        return false;
+    }
+    if (Array.isArray(identity)) {
+        identity = `input[${identity[0]}="${identity[1]}"]`;
+    } else if (typeof identity === 'object') {
+        identity = `input[${identity.attr}="${identity.value}"]`;
+    }
+    $(identity).attr('disabled', true);
+}
+
+function enableButton(identity) {
+    if (!identity) {
+        return false;
+    }
+    if (Array.isArray(identity)) {
+        identity = `input[${identity[0]}="${identity[1]}"]`;
+    } else if (typeof identity === 'object') {
+        identity = `input[${identity.attr}="${identity.value}"]`;
+    }
+    $(identity).attr('disabled', false);
+}

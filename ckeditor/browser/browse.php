@@ -147,76 +147,81 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
             <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas" aria-label="Close"></button>
         </div>
         <div class="offcanvas-body">
+            <!-- Settings -->
             <div class="settings">
                 <label class="mb-2">Settings</label>
                 <div class="form-check mb-2">
-                    <input class="form-check-input" type="checkbox" name="filename-setting" id="filename-setting">
+                    <input class="form-check-input" type="checkbox" name="fds-setting[]" id="filename-setting" data-setting="filename" data-group="fds-setting" checked>
                     <label class="form-check-label" for="filename-setting">
                         File Name
                     </label>
                 </div>
                 <div class="form-check mb-2">
-                    <input class="form-check-input" type="checkbox" name="date-setting" id="date-setting">
+                    <input class="form-check-input" type="checkbox" name="fds-setting[]" id="date-setting" data-setting="date" data-group="fds-setting" checked>
                     <label class="form-check-label" for="date-setting">
                         Date
                     </label>
                 </div>
                 <div class="form-check">
-                    <input class="form-check-input" type="checkbox" name="filesize-setting" id="filesize-setting">
+                    <input class="form-check-input" type="checkbox" name="fds-setting[]" id="filesize-setting" data-setting="filesize" data-group="fds-setting" checked>
                     <label class="form-check-label" for="filesize-setting">
                         File Size
                     </label>
                 </div>
             </div>
+            <!-- View -->
             <div class="view mt-3">
                 <label class="mb-2">View</label>
                 <div class="form-check mb-2">
-                    <input class="form-check-input" type="radio" name="view-setting" id="list-view">
-                    <label class="form-check-label" for="filename-setting">
+                    <input class="form-check-input view-setting" type="radio" value="list" name="view-setting" id="list-view-setting" data-setting="view">
+                    <label class="form-check-label" for="list-view-setting">
                         List
                     </label>
                 </div>
                 <div class="form-check mb-2">
-                    <input class="form-check-input" type="radio" name="view-setting" id="thumbnails-view" checked>
-                    <label class="form-check-label" for="date-setting">
-                        Thumbnails
+                    <input class="form-check-input view-setting" type="radio" value="thumbnail" name="view-setting" id="thumbnail-view-setting" data-setting="view" checked>
+                    <label class="form-check-label" for="thumbnail-view-setting">
+                        Thumbnail
                     </label>
                 </div>
                 <div class="form-check mb-2">
-                    <input class="form-check-input" type="radio" name="view-setting" id="compact-view">
-                    <label class="form-check-label" for="filesize-setting">
+                    <input class="form-check-input view-setting" type="radio" value="compact" name="view-setting" id="compact-view-setting" data-setting="view">
+                    <label class="form-check-label" for="compact-view-setting">
                         Compact
                     </label>
                 </div>
             </div>
+            <!-- Sort By -->
             <div class="sortby mt-3">
                 <label class="mb-2">Sort by</label>
-                <select class="form-select form-select-sm" aria-label=".form-select-sm sortby-setting">
-                    <option value="1" selected>File Name</option>
-                    <option value="2">File Size</option>
-                    <option value="3">Date</option>
+                <select class="form-select form-select-sm" name="sorby-setting" id="sorby-setting" data-setting="sortby" aria-label=".form-select-sm sortby-setting">
+                    <option value="filename" selected>File Name</option>
+                    <option value="filesize">File Size</option>
+                    <option value="date">Date</option>
                 </select>
             </div>
+            <!-- Order By -->
             <div class="orderby mt-3">
                 <label class="mb-2">Order by</label>
                 <div class="form-check mb-2">
-                    <input class="form-check-input" type="radio" name="orderby-setting" id="orderby-asc" checked>
-                    <label class="form-check-label" for="orderby-asc">
+                    <input class="form-check-input orderby-setting" type="radio" value="asc" name="orderby-setting" id="asc-orderby-setting" data-setting="orderby" checked>
+                    <label class="form-check-label" for="asc-orderby-setting">
                         Ascending
                     </label>
                 </div>
                 <div class="form-check">
-                    <input class="form-check-input" type="radio" name="orderby-setting" id="orderby-desc">
-                    <label class="form-check-label" for="orderby-desc">
+                    <input class="form-check-input orderby-setting" type="radio" value="desc" name="orderby-setting" id="desc-orderby-setting" data-setting="orderby">
+                    <label class="form-check-label" for="desc-orderby-setting">
                         Descending
                     </label>
                 </div>
             </div>
-            <div class="thumbnail-size mt-3 mb-3">
+            <!-- Thumbnail Sise -->
+            <div class="mt-3 mb-3">
                 <label class="form-label mb-2">Thumbnail Size</label>
                 <div class="d-flex flex-row align-items-center justify-content-between">
-                    <input type="text" class="form-control form-control-sm me-4 text-center" name="thumbnail-size" value="150">
-                    <input type="range" class="form-range slider-thumbnail-size" min="150" max="500" step="4" value="150">
+                    <input type="text" class="form-control form-control-sm me-4 text-center" id="thumbsize-setting" name="thumbsize-setting" value="150" data-setting="thumbsize" data-target="#slider-thumbsize-setting" data-group="thumbsize-setting">
+                    <input type="range" class="form-range" id="slider-thumbsize-setting" name="slider-thumbsize-setting" min="150" max="500" step="4" value="150" data-setting="thumbsize" data-target="#thumbsize-setting" data-group="thumbsize-setting">
                 </div>
             </div>
         </div>
@@ -1748,6 +1753,63 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
                 icon.removeClass('bi-folder').addClass('bi-folder2-open');
                 button.addClass('collapsed');
             }
+        });
+
+        // Settings Modal
+        var SETTINGS = {
+            click: [
+                '#filename-setting',
+                '#filesize-setting',
+                '#date-setting',
+                '.view-setting',
+                '.orderby-setting',
+            ],
+            change: [
+                '#thumbsize-setting',
+                '#slider-thumbsize-setting',
+                '#sorby-setting'
+            ],
+        };
+
+        var activeSettings = {
+            filename: true,
+            filesize: true,
+            date: true,
+            view: 'list',       // list | thumbnail | compact
+            orderby: 'asc',     // asc | desc
+            sortby: 'filename', // filename | filesize | date
+            thumbsize: 150
+        };
+
+        Object.keys(SETTINGS).forEach(function (event) {
+            SETTINGS[event].forEach(function (identity) {
+                $(identity).on(event, function (e) {
+                    let setting = $(this).data('setting');
+                    let type    = $(this).attr('type');
+                    let value   = type == 'checkbox' ? $(this).is(':checked') : $(this).val();
+                    activeSettings[setting] = value;
+                    // Update value when thumbsize changed
+                    if (setting == 'thumbsize') {
+                        $($(this).data('target')).val(value);
+                    }
+
+                    if (setting == 'view') {
+                        if (value == 'compact') {
+                            // disableButton({attr: 'data-group', value: 'fds-setting'});
+                            disableButton(['data-group', 'fds-setting']);
+                            disableButton(['data-group', 'thumbsize-setting']);
+                        } else if (value == 'list') {
+                            disableButton(['data-group', 'thumbsize-setting']);
+                            enableButton(['data-group', 'fds-setting']);
+                            disableButton(['data-setting', 'filename']);
+                        } else {
+                            enableButton(['data-group', 'fds-setting']);
+                            enableButton(['data-group', 'thumbsize-setting']);
+                        }
+                    }
+                    // TODO: Change layout here
+                });
+            });
         });
 
         // Automatically loading images when on reload page
