@@ -9,7 +9,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.css" integrity="sha512-aOG0c6nPNzGk+5zjwyJaoRUgCdOrfSDhmMID2u4+OIslr0GjpLKo7Xm0Ao3xmpM4T8AmIouRkqwj1nrdVsLKEQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.5.0/font/bootstrap-icons.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/css/bootstrap.min.css" integrity="sha384-KyZXEAg3QhqLMpG8r+8fhAXLRk2vvoC2f3B09zVXn8CA5QIVfZOJ3BCsw2P0p/We" crossorigin="anonymous">
-    <link rel="stylesheet" href="https://cdn.datatables.net/v/bs5/datatables.min.css"/>
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.11.1/css/jquery.dataTables.min.css"/>
     <link rel="stylesheet" href="./css/style.css" rel="stylesheet">
     <link rel="stylesheet" href="./css/context-menu.css" rel="stylesheet">
     <!-- jQuery -->
@@ -18,7 +18,7 @@
     <!-- Option 1: Bootstrap Bundle with Popper -->
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.3/dist/umd/popper.min.js" integrity="sha384-eMNCOe7tC1doHpGoWe/6oMVemdAVTMs2xqW4mwXrXsW0L84Iytr2wi5v2QjrP/xp" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/js/bootstrap.min.js" integrity="sha384-cn7l7gDp0eyniUwwAZgrzD06kc/tftFf19TOAs2zVinnD/C7E91j9yyk5//jjpt/" crossorigin="anonymous"></script>
-    <script src="https://cdn.datatables.net/v/bs5/datatables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.11.1/js/jquery.dataTables.min.js"></script>
     <script src="./js/libs/caman.full.min.js"></script>
     <script src="./js/globals.js"></script>
     <script src="./js/context.js"></script>
@@ -140,6 +140,17 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
 
             <div class="col-9 main-content"></div><!-- /.main-content -->
         </div><!-- /.content -->
+        <div class="images">
+            <table id="datatable">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>File Size</th>
+                        <th>Date</th>
+                    </tr>
+                </thead>
+            </table>
+        </div>
     </div>
 
     <!-- Right Transition Modal -->
@@ -1818,6 +1829,63 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
         if ($('.sidebar').find('.folder-selected').hasClass('folder-selected')) {
             $('.sidebar').find('.folder-selected .folder').click();
         }
+
+        var data = [
+            {
+                "name": "1502021090901.png",
+                "src": "https://via.placeholder.com/150/0000FF/808080?Text=Digital.com",
+                "filesize": "250kb",
+                "date": "2021-09-09 15:37:21",
+            },
+            {
+                "name": "1502021090902.png",
+                "src": "https://via.placeholder.com/150/FFFF00/000000?Text=WebsiteBuilders.com",
+                "filesize": "370kb",
+                "date": "2021-09-09 17:30:11",
+            },
+        ];
+        $('#datatable').DataTable( {
+            stateSave: true,
+            paging: false,
+            searching: false,
+            info: false,
+            data: data,
+            columns: [
+                { data: 'name' },
+                { data: 'filesize' },
+                { data: 'date' },
+            ],
+            columnDefs: [
+                {
+                    targets: 0, // column 1,
+                    render: function(data, type, row, meta) {
+                        console.log({data, type, row, meta});
+                        return `
+                            <div>
+                                <img src="${row.src}" />
+                            </div>
+                        `;
+                        // out += '<div class="col-3 block-image">';
+                        // out +=      `<div class="wrap-image context-menu-target" data-mime="${info.mime}" data-path="${info.folder}/${info.basename}" data-ctx-item-type="image">`;
+                        // out +=          `<img class="image" src="${info.src}" height="100" width="100%" alt="${info.filename}" />`;
+                        // out +=          `<div class="fname">${info.basename}</div>`;
+                        // out +=          `<div class="fmodified">${info.modified}</div>`;
+                        // out +=          `<div class="fsize">${info.size}</div>`;
+                        // out +=      '</div>';
+                        // out += '</div>';
+
+                    }
+                }
+            ],
+            createdRow: function(row, data, dataIndex) { // @Hook: fired after row has already been created
+                $(row).addClass('wrap-image context-menu-target');
+                $(row).attr('data-ctx-item-type', 'image');
+            }
+        } );
+
+        $('#datatable').on('dblclick', 'tbody tr', function (e) {
+            alert(1)
+        });
 
         // window.opener.CKEDITOR.instances.editor.openDialog('mypluginDialog');
         // CKEDITOR.instances.editor.commands.insertMyPlugin.exec();
