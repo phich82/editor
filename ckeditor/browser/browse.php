@@ -1768,68 +1768,6 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
             }
         });
 
-        // Settings Modal
-        var SETTINGS = {
-            click: [
-                '#filename-setting',
-                '#filesize-setting',
-                '#date-setting',
-                '.view-setting',
-                '.orderby-setting',
-            ],
-            change: [
-                '#thumbsize-setting',
-                '#slider-thumbsize-setting',
-                '#sorby-setting'
-            ],
-        };
-
-        var activeSettings = {
-            filename: true,
-            filesize: true,
-            date: true,
-            view: 'list',       // list | thumbnail | compact
-            orderby: 'asc',     // asc | desc
-            sortby: 'filename', // filename | filesize | date
-            thumbsize: 150
-        };
-
-        Object.keys(SETTINGS).forEach(function (event) {
-            SETTINGS[event].forEach(function (identity) {
-                $(identity).on(event, function (e) {
-                    let setting = $(this).data('setting');
-                    let type    = $(this).attr('type');
-                    let value   = type == 'checkbox' ? $(this).is(':checked') : $(this).val();
-                    activeSettings[setting] = value;
-                    // Update value when thumbsize changed
-                    if (setting == 'thumbsize') {
-                        $($(this).data('target')).val(value);
-                    }
-
-                    if (setting == 'view') {
-                        if (value == 'compact') {
-                            // disableButton({attr: 'data-group', value: 'fds-setting'});
-                            disableButton(['data-group', 'fds-setting']);
-                            disableButton(['data-group', 'thumbsize-setting']);
-                        } else if (value == 'list') {
-                            disableButton(['data-group', 'thumbsize-setting']);
-                            enableButton(['data-group', 'fds-setting']);
-                            disableButton(['data-setting', 'filename']);
-                        } else {
-                            enableButton(['data-group', 'fds-setting']);
-                            enableButton(['data-group', 'thumbsize-setting']);
-                        }
-                    }
-                    // TODO: Change layout here
-                });
-            });
-        });
-
-        // Automatically loading images when on reload page
-        if ($('.sidebar').find('.folder-selected').hasClass('folder-selected')) {
-            $('.sidebar').find('.folder-selected .folder').click();
-        }
-
         var THEME = {
             identity: null,
             addOption: function (options) {
@@ -1877,6 +1815,41 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
             },
             redraw: function() {
                 this.datatable = $(this.identity).DataTable(this.options).draw();
+            },
+            showList: function() {
+                this.destroy();
+                var columnDefs = this.options.columnDefs || [];
+                var newColumn = {
+                    targets: 0,
+                    orderable: false,
+                    title: undefined,
+                    render(data, type, row, meta) {
+                        return `
+                            <div style="text-align: right;">
+                                <img src="${row.src}" height="40" width="40" />
+                            </div>
+                        `;
+                    }
+                };
+                columnDefs = columnDefs.reduce(function(carry, item) {
+                    item.targets = item.targets + 1;
+                    carry.push(item);
+                    return carry;
+                }, [newColumn]);
+                this.addOption({columnDefs}).redraw();
+            },
+            showCompact: function() {
+                this.destroy();
+                var columnDefs = this.options.columnDefs || [];
+                columnDefs.shift();
+                columnDefs = columnDefs.map(function(item) {
+                    item.targets = item.targets - 1;
+                    return item;
+                });
+                this.addOption({columnDefs}).redraw();
+            },
+            showThumbnail: function() {
+
             }
         };
 
@@ -1920,27 +1893,73 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
             }
         }).init('#datatable');
 
+        // Settings Modal
+        var SETTINGS = {
+            click: [
+                '#filename-setting',
+                '#filesize-setting',
+                '#date-setting',
+                '.view-setting',
+                '.orderby-setting',
+            ],
+            change: [
+                '#thumbsize-setting',
+                '#slider-thumbsize-setting',
+                '#sorby-setting'
+            ],
+        };
+
+        var activeSettings = {
+            filename: true,
+            filesize: true,
+            date: true,
+            view: 'list',       // list | thumbnail | compact
+            orderby: 'asc',     // asc | desc
+            sortby: 'filename', // filename | filesize | date
+            thumbsize: 150
+        };
+
+        Object.keys(SETTINGS).forEach(function (event) {
+            SETTINGS[event].forEach(function (identity) {
+                $(identity).on(event, function (e) {
+                    let setting = $(this).data('setting');
+                    let type    = $(this).attr('type');
+                    let value   = type == 'checkbox' ? $(this).is(':checked') : $(this).val();
+                    activeSettings[setting] = value;
+                    // Update value when thumbsize changed
+                    if (setting == 'thumbsize') {
+                        $($(this).data('target')).val(value);
+                    }
+
+                    if (setting == 'view') {
+                        if (value == 'compact') {
+                            // disableButton({attr: 'data-group', value: 'fds-setting'});
+                            disableButton(['data-group', 'fds-setting']);
+                            disableButton(['data-group', 'thumbsize-setting']);
+                            THEME.showCompact();
+                        } else if (value == 'list') {
+                            disableButton(['data-group', 'thumbsize-setting']);
+                            enableButton(['data-group', 'fds-setting']);
+                            disableButton(['data-setting', 'filename']);
+                            THEME.showList();
+                        } else {
+                            enableButton(['data-group', 'fds-setting']);
+                            enableButton(['data-group', 'thumbsize-setting']);
+                            THEME.showThumbnail();
+                        }
+                    }
+                    // TODO: Change layout here
+                });
+            });
+        });
+
+        // Automatically loading images when on reload page
+        if ($('.sidebar').find('.folder-selected').hasClass('folder-selected')) {
+            $('.sidebar').find('.folder-selected .folder').click();
+        }
+
         $('#datatable').on('dblclick', 'tbody tr', function (e) {
-            THEME.destroy();
-            var columnDefs = THEME.options.columnDefs || [];
-            var newColumn = {
-                targets: 0,
-                orderable: false,
-                title: undefined,
-                render(data, type, row, meta) {
-                    return `
-                        <div style="text-align: right;">
-                            <img src="${row.src}" height="40" width="40" />
-                        </div>
-                    `;
-                }
-            };
-            columnDefs = columnDefs.reduce(function(carry, item) {
-                item.targets = item.targets + 1;
-                carry.push(item);
-                return carry;
-            }, [newColumn]);
-            THEME.addOption({columnDefs}).redraw();
+            //
         });
 
         // window.opener.CKEDITOR.instances.editor.openDialog('mypluginDialog');
