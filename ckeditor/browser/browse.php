@@ -142,13 +142,13 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
         </div><!-- /.content -->
         <div class="images">
             <table id="datatable">
-                <thead>
+                <!-- <thead>
                     <tr>
                         <th>Name</th>
                         <th>File Size</th>
                         <th>Date</th>
                     </tr>
-                </thead>
+                </thead> -->
             </table>
         </div>
     </div>
@@ -1830,6 +1830,56 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
             $('.sidebar').find('.folder-selected .folder').click();
         }
 
+        var THEME = {
+            identity: null,
+            addOption: function (options) {
+                var self = this;
+                options = options || [];
+                if (typeof options === 'object') {
+                    if (!Array.isArray(options)) {
+                        options = [options];
+                    }
+                    options.forEach(function (option) {
+                        Object.keys(option).forEach(function (key) {
+                            self.options[key] = option[key];
+                        })
+                    })
+                }
+                return this;
+            },
+            options: {
+                stateSave: true,
+                paging: false,
+                searching: false,
+                info: false,
+                // data: data,
+                // columns: [
+                //     { data: 'name' },
+                //     { data: 'filesize' },
+                //     { data: 'date' },
+                // ],
+                // columnDefs: columnDefs,
+                // createdRow: function(row, data, dataIndex) { // @Hook: fired after row has already been created
+                //     $(row).addClass('wrap-image context-menu-target');
+                //     $(row).attr('data-ctx-item-type', 'image');
+                // }
+            },
+            datatable: null,
+            init: function (identity) {
+                this.identity  = identity;
+                this.datatable = $(this.identity).DataTable(this.options);
+            },
+            destroy: function () {
+                if (this.datatable) {
+                    this.datatable.destroy();
+                    $(this.identity).empty();
+                }
+            },
+            redraw: function() {
+                this.datatable = $(this.identity).DataTable(this.options).draw();
+            }
+        };
+
         var data = [
             {
                 "name": "1502021090901.png",
@@ -1844,47 +1894,53 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
                 "date": "2021-09-09 17:30:11",
             },
         ];
-        $('#datatable').DataTable( {
-            stateSave: true,
-            paging: false,
-            searching: false,
-            info: false,
-            data: data,
-            columns: [
-                { data: 'name' },
-                { data: 'filesize' },
-                { data: 'date' },
-            ],
+
+        THEME.addOption({
+            data,
             columnDefs: [
                 {
                     targets: 0, // column 1,
+                    title: 'Name',
+                    data: 'name',
                     render: function(data, type, row, meta) {
                         console.log({data, type, row, meta});
                         return `
                             <div>
-                                <img src="${row.src}" />
+                                ${row.name}
                             </div>
                         `;
-                        // out += '<div class="col-3 block-image">';
-                        // out +=      `<div class="wrap-image context-menu-target" data-mime="${info.mime}" data-path="${info.folder}/${info.basename}" data-ctx-item-type="image">`;
-                        // out +=          `<img class="image" src="${info.src}" height="100" width="100%" alt="${info.filename}" />`;
-                        // out +=          `<div class="fname">${info.basename}</div>`;
-                        // out +=          `<div class="fmodified">${info.modified}</div>`;
-                        // out +=          `<div class="fsize">${info.size}</div>`;
-                        // out +=      '</div>';
-                        // out += '</div>';
-
                     }
-                }
+                },
+                { targets: 1, title: 'File Size', data: 'filesize', },
+                { targets: 2, title: 'Date', data: 'date' },
             ],
             createdRow: function(row, data, dataIndex) { // @Hook: fired after row has already been created
                 $(row).addClass('wrap-image context-menu-target');
                 $(row).attr('data-ctx-item-type', 'image');
             }
-        } );
+        }).init('#datatable');
 
         $('#datatable').on('dblclick', 'tbody tr', function (e) {
-            alert(1)
+            THEME.destroy();
+            var columnDefs = THEME.options.columnDefs || [];
+            var newColumn = {
+                targets: 0,
+                orderable: false,
+                title: undefined,
+                render(data, type, row, meta) {
+                    return `
+                        <div style="text-align: right;">
+                            <img src="${row.src}" height="40" width="40" />
+                        </div>
+                    `;
+                }
+            };
+            columnDefs = columnDefs.reduce(function(carry, item) {
+                item.targets = item.targets + 1;
+                carry.push(item);
+                return carry;
+            }, [newColumn]);
+            THEME.addOption({columnDefs}).redraw();
         });
 
         // window.opener.CKEDITOR.instances.editor.openDialog('mypluginDialog');
