@@ -25,6 +25,7 @@
     <script src="./js/filters.js"></script>
     <script src="./js/image-editor.js"></script>
     <script src="./js/services.js"></script>
+    <script src="./js/plugins.js"></script>
 </head>
 
 <?php
@@ -140,17 +141,6 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
 
             <div class="col-9 main-content"></div><!-- /.main-content -->
         </div><!-- /.content -->
-        <div class="images">
-            <table id="datatable">
-                <!-- <thead>
-                    <tr>
-                        <th>Name</th>
-                        <th>File Size</th>
-                        <th>Date</th>
-                    </tr>
-                </thead> -->
-            </table>
-        </div>
     </div>
 
     <!-- Right Transition Modal -->
@@ -297,26 +287,80 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
 
 <script>
     function showImages(path) {
+        path = path || $('.folder-selected').attr('data-path');
         $.ajax({
             url: '../uploader/do_file.php',
             method: 'POST',
             data: { path, action: 'read' },
             dataType: 'json',
             success: function (response) {
-                console.log("response =>", response);
                 if (response && response.success) {
-                    let out = '<div class="images">';
                     let count = 1;
-                    response.data.forEach(function (info, idx) {
+                    let dataResponse = response.data;
+
+                    // If it is List View, show grid type
+                    if (ACTIVE_SETTINGS.view == 'list') {
+                        $('.main-content').html('<table id="datatable"></table>');
+                        THEME.addOption({
+                            order: [[ THEME.indexesColumn[ACTIVE_SETTINGS.sortby], ACTIVE_SETTINGS.orderby ]],
+                            data: dataResponse,
+                            createdRow: function(row, data, dataIndex) { // @Hook: fired after row has already been created
+                                $(row).addClass('wrap-image context-menu-target');
+                                $(row).attr('data-ctx-item-type', 'image');
+                            }
+                        }).init('#datatable');
+                        // Restart context menu for binding images to it
+                        bindContextMenu();
+                        return;
+                    }
+
+                    // SortBy & OrderBy images
+                    dataResponse.sort(function (prev, next) {
+                        let orderby = ACTIVE_SETTINGS.orderby == 'asc' ? 1 : -1;
+                        if (ACTIVE_SETTINGS.sortby == 'filename') {
+                            prev = prev.filename.toUpperCase();
+                            next = next.filename.toUpperCase();
+                            if (prev < next) {
+                                return -orderby;
+                            }
+                            if (prev > next) {
+                                return orderby;
+                            }
+                            return 0;
+                        } else if (ACTIVE_SETTINGS.sortby == 'filesize') {
+                            if (prev.size < next.size) {
+                                return -orderby;
+                            }
+                            if (prev.size > next.size) {
+                                return orderby;
+                            }
+                            return 0;
+                        } else {
+                            if (new Date(prev.modified) < new Date(next.modified)) {
+                                return -orderby;
+                            }
+                            if (new Date(prev.modified) > new Date(next.modified)) {
+                                return orderby;
+                            }
+                            return 0;
+                        }
+                    });
+
+                    let out = '<div class="images">';
+                    dataResponse.forEach(function (info, idx) {
                         if (count === 1) {
                             out += '<div class="row row-image">';
                         }
                         out += '<div class="col-3 block-image">';
                         out +=      `<div class="wrap-image context-menu-target" data-mime="${info.mime}" data-path="${info.folder}/${info.basename}" data-ctx-item-type="image">`;
-                        out +=          `<img class="image" src="${info.src}" height="100" width="100%" alt="${info.filename}" />`;
-                        out +=          `<div class="fname">${info.basename}</div>`;
-                        out +=          `<div class="fmodified">${info.modified}</div>`;
-                        out +=          `<div class="fsize">${info.size}</div>`;
+                        if (ACTIVE_SETTINGS.view == 'thumbnail') {
+                            out +=          `<img class="image" src="${info.src}" height="100" width="100%" alt="${info.filename}" />`;
+                            out +=          `<div class="fname filename">${info.basename}</div>`;
+                            out +=          `<div class="fmodified date">${info.modified}</div>`;
+                            out +=          `<div class="fsize filesize">${info.formated_size}</div>`;
+                        } else {
+                            out +=          `<div class="fname filename"><i class="bi bi-image-fill"></i> ${info.basename}</div>`;
+                        }
                         out +=      '</div>';
                         out += '</div>';
                         if (count === 4) {
@@ -331,6 +375,11 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
 
                     // Restart context menu for binding images to it
                     bindContextMenu();
+
+                    // Update thumbnail layout
+                    if (ACTIVE_SETTINGS.view == 'thumbnail') {
+                        THEME.updateThumbnail(ACTIVE_SETTINGS.thumbsize);
+                    }
                 }
             },
             error: function (jqXHR, textStatus, errorThrown) {
@@ -681,7 +730,6 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
                             dataType: 'json',
                             contentType: 'application/x-www-form-urlencoded; charset=UTF-8',
                             success: function(response, status, jqXHR) {
-                                console.log('response => ', response)
                                 if (response && response.success) {
                                     let data = response.data;
                                     let imageSelected = $('.images').find('.image-selected');
@@ -1572,6 +1620,146 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
         }
     };
 
+    // Settings Modal
+    var SETTINGS = {
+        click: [
+            '#filename-setting',
+            '#filesize-setting',
+            '#date-setting',
+            '.view-setting',
+            '.orderby-setting',
+        ],
+        change: [
+            '#thumbsize-setting',
+            '#slider-thumbsize-setting',
+            '#sorby-setting'
+        ],
+    };
+
+    var ACTIVE_SETTINGS = {
+        filename: true,
+        filesize: true,
+        date: true,
+        view: 'thumbnail',  // list | thumbnail | compact
+        orderby: 'asc',     // asc | desc
+        sortby: 'filename', // filename | filesize | date
+        thumbsize: 150
+    };
+
+    var THEME = {
+        identity: null,
+        datatable: null,
+        indexesColumn: {
+            icon: 0,
+            filename: 1,
+            filesize: 2,
+            date: 3
+        },
+        columnDefs() {
+            return [
+                {
+                    targets: this.indexesColumn.icon,
+                    orderable: false,
+                    title: undefined,
+                    render(data, type, row, meta) {
+                        return `
+                            <i class="bi bi-image-fill" style="font-size:25px;"></i>
+                        `;
+                    }
+                },
+                {
+                    targets: this.indexesColumn.filename,
+                    title: 'File Name',
+                    data: 'basename',
+                    render(data, type, row, meta) {
+                        return `
+                            ${row.filename}
+                        `;
+                    }
+                },
+                {
+                    targets: this.indexesColumn.filesize,
+                    title: 'File Size',
+                    data: 'size',
+                    type: 'only-numeric',
+                    render(data, type, row, meta) {
+                        return `${row.formated_size}`;
+                    }
+                },
+                {
+                    targets: this.indexesColumn.date,
+                    title: 'Date',
+                    data: 'modified'
+                },
+            ];
+        },
+        addOption: function (options) {
+            var self = this;
+            options = options || [];
+            if (typeof options === 'object') {
+                if (!Array.isArray(options)) {
+                    options = [options];
+                }
+                options.forEach(function (option) {
+                    Object.keys(option).forEach(function (key) {
+                        self.options[key] = option[key];
+                    })
+                })
+            }
+            return this;
+        },
+        options: {
+            // stateSave: true,
+            paging: false,
+            searching: false,
+            info: false,
+        },
+        init: function (identity) {
+            this.identity  = identity;
+            // Set default for columnDefs if not found
+            if (!this.options.hasOwnProperty('columnDefs')) {
+                this.options.columnDefs = this.columnDefs();
+            }
+            this.datatable = $(this.identity).DataTable(this.options);
+        },
+        destroy: function () {
+            if (this.datatable) {
+                this.datatable.destroy();
+                $(this.identity).empty();
+            }
+        },
+        redraw: function() {
+            this.datatable = $(this.identity).DataTable(this.options).draw();
+        },
+        updateThumbnail: function(value) {
+            let blocks = $('.images').find('.block-image');
+            if (isNaN(value)) {
+                value = 150;
+            }
+            value = parseInt(value);
+            value = value < 150 ? value : value;
+            if (value < 200) {
+                blocks.removeClass('col-3');
+                blocks.removeClass('col-6');
+                blocks.removeClass('col-12');
+                blocks.addClass('col-3');
+                blocks.find('img').attr('height', 100);
+            } else if (value < 400) {
+                blocks.removeClass('col-3');
+                blocks.removeClass('col-6');
+                blocks.removeClass('col-12');
+                blocks.addClass('col-6');
+                blocks.find('img').attr('height', value);
+            } else {
+                blocks.removeClass('col-3');
+                blocks.removeClass('col-6');
+                blocks.removeClass('col-12');
+                blocks.addClass('col-12');
+                blocks.find('img').attr('height', value);
+            }
+        }
+    };
+
     $(function() {
         // Bind context menu
         bindContextMenu();
@@ -1768,91 +1956,6 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
             }
         });
 
-        var THEME = {
-            identity: null,
-            addOption: function (options) {
-                var self = this;
-                options = options || [];
-                if (typeof options === 'object') {
-                    if (!Array.isArray(options)) {
-                        options = [options];
-                    }
-                    options.forEach(function (option) {
-                        Object.keys(option).forEach(function (key) {
-                            self.options[key] = option[key];
-                        })
-                    })
-                }
-                return this;
-            },
-            options: {
-                stateSave: true,
-                paging: false,
-                searching: false,
-                info: false,
-                // data: data,
-                // columns: [
-                //     { data: 'name' },
-                //     { data: 'filesize' },
-                //     { data: 'date' },
-                // ],
-                // columnDefs: columnDefs,
-                // createdRow: function(row, data, dataIndex) { // @Hook: fired after row has already been created
-                //     $(row).addClass('wrap-image context-menu-target');
-                //     $(row).attr('data-ctx-item-type', 'image');
-                // }
-            },
-            datatable: null,
-            init: function (identity) {
-                this.identity  = identity;
-                this.datatable = $(this.identity).DataTable(this.options);
-            },
-            destroy: function () {
-                if (this.datatable) {
-                    this.datatable.destroy();
-                    $(this.identity).empty();
-                }
-            },
-            redraw: function() {
-                this.datatable = $(this.identity).DataTable(this.options).draw();
-            },
-            showList: function() {
-                this.destroy();
-                var columnDefs = this.options.columnDefs || [];
-                var newColumn = {
-                    targets: 0,
-                    orderable: false,
-                    title: undefined,
-                    render(data, type, row, meta) {
-                        return `
-                            <div style="text-align: right;">
-                                <img src="${row.src}" height="40" width="40" />
-                            </div>
-                        `;
-                    }
-                };
-                columnDefs = columnDefs.reduce(function(carry, item) {
-                    item.targets = item.targets + 1;
-                    carry.push(item);
-                    return carry;
-                }, [newColumn]);
-                this.addOption({columnDefs}).redraw();
-            },
-            showCompact: function() {
-                this.destroy();
-                var columnDefs = this.options.columnDefs || [];
-                columnDefs.shift();
-                columnDefs = columnDefs.map(function(item) {
-                    item.targets = item.targets - 1;
-                    return item;
-                });
-                this.addOption({columnDefs}).redraw();
-            },
-            showThumbnail: function() {
-
-            }
-        };
-
         var data = [
             {
                 "name": "1502021090901.png",
@@ -1866,89 +1969,137 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
                 "filesize": "370kb",
                 "date": "2021-09-09 17:30:11",
             },
+            {
+                "name": "1502021090902.png",
+                "src": "https://via.placeholder.com/150/FFFF00/000000?Text=WebsiteBuilders.com",
+                "filesize": "370kb",
+                "date": "2021-09-09 17:30:11",
+            },
+            {
+                "name": "1502021090902.png",
+                "src": "https://via.placeholder.com/150/FFFF00/000000?Text=WebsiteBuilders.com",
+                "filesize": "370kb",
+                "date": "2021-09-09 17:30:11",
+            },
+            {
+                "name": "1502021090902.png",
+                "src": "https://via.placeholder.com/150/FFFF00/000000?Text=WebsiteBuilders.com",
+                "filesize": "370kb",
+                "date": "2021-09-09 17:30:11",
+            },
+            {
+                "name": "1502021090902.png",
+                "src": "https://via.placeholder.com/150/FFFF00/000000?Text=WebsiteBuilders.com",
+                "filesize": "370kb",
+                "date": "2021-09-09 17:30:11",
+            },
+            {
+                "name": "1502021090902.png",
+                "src": "https://via.placeholder.com/150/FFFF00/000000?Text=WebsiteBuilders.com",
+                "filesize": "370kb",
+                "date": "2021-09-09 17:30:11",
+            },
+            {
+                "name": "1502021090902.png",
+                "src": "https://via.placeholder.com/150/FFFF00/000000?Text=WebsiteBuilders.com",
+                "filesize": "370kb",
+                "date": "2021-09-09 17:30:11",
+            },
+            {
+                "name": "1502021090902.png",
+                "src": "https://via.placeholder.com/150/FFFF00/000000?Text=WebsiteBuilders.com",
+                "filesize": "370kb",
+                "date": "2021-09-09 17:30:11",
+            },
+            {
+                "name": "1502021090902.png",
+                "src": "https://via.placeholder.com/150/FFFF00/000000?Text=WebsiteBuilders.com",
+                "filesize": "370kb",
+                "date": "2021-09-09 17:30:11",
+            },
+            {
+                "name": "1502021090902.png",
+                "src": "https://via.placeholder.com/150/FFFF00/000000?Text=WebsiteBuilders.com",
+                "filesize": "370kb",
+                "date": "2021-09-09 17:30:11",
+            },
+            {
+                "name": "1502021090902.png",
+                "src": "https://via.placeholder.com/150/FFFF00/000000?Text=WebsiteBuilders.com",
+                "filesize": "370kb",
+                "date": "2021-09-09 17:30:11",
+            },
+            {
+                "name": "1502021090902.png",
+                "src": "https://via.placeholder.com/150/FFFF00/000000?Text=WebsiteBuilders.com",
+                "filesize": "370kb",
+                "date": "2021-09-09 17:30:11",
+            },
+            {
+                "name": "1502021090902.png",
+                "src": "https://via.placeholder.com/150/FFFF00/000000?Text=WebsiteBuilders.com",
+                "filesize": "370kb",
+                "date": "2021-09-09 17:30:11",
+            },
+            {
+                "name": "1502021090902.png",
+                "src": "https://via.placeholder.com/150/FFFF00/000000?Text=WebsiteBuilders.com",
+                "filesize": "370kb",
+                "date": "2021-09-09 17:30:11",
+            },
+            {
+                "name": "1502021090902.png",
+                "src": "https://via.placeholder.com/150/FFFF00/000000?Text=WebsiteBuilders.com",
+                "filesize": "370kb",
+                "date": "2021-09-09 17:30:11",
+            },
         ];
-
-        THEME.addOption({
-            data,
-            columnDefs: [
-                {
-                    targets: 0, // column 1,
-                    title: 'Name',
-                    data: 'name',
-                    render: function(data, type, row, meta) {
-                        console.log({data, type, row, meta});
-                        return `
-                            <div>
-                                ${row.name}
-                            </div>
-                        `;
-                    }
-                },
-                { targets: 1, title: 'File Size', data: 'filesize', },
-                { targets: 2, title: 'Date', data: 'date' },
-            ],
-            createdRow: function(row, data, dataIndex) { // @Hook: fired after row has already been created
-                $(row).addClass('wrap-image context-menu-target');
-                $(row).attr('data-ctx-item-type', 'image');
-            }
-        }).init('#datatable');
-
-        // Settings Modal
-        var SETTINGS = {
-            click: [
-                '#filename-setting',
-                '#filesize-setting',
-                '#date-setting',
-                '.view-setting',
-                '.orderby-setting',
-            ],
-            change: [
-                '#thumbsize-setting',
-                '#slider-thumbsize-setting',
-                '#sorby-setting'
-            ],
-        };
-
-        var activeSettings = {
-            filename: true,
-            filesize: true,
-            date: true,
-            view: 'list',       // list | thumbnail | compact
-            orderby: 'asc',     // asc | desc
-            sortby: 'filename', // filename | filesize | date
-            thumbsize: 150
-        };
 
         Object.keys(SETTINGS).forEach(function (event) {
             SETTINGS[event].forEach(function (identity) {
                 $(identity).on(event, function (e) {
                     let setting = $(this).data('setting');
                     let type    = $(this).attr('type');
+                    let group   = $(this).attr('data-group');
                     let value   = type == 'checkbox' ? $(this).is(':checked') : $(this).val();
-                    activeSettings[setting] = value;
-                    // Update value when thumbsize changed
-                    if (setting == 'thumbsize') {
-                        $($(this).data('target')).val(value);
+                    ACTIVE_SETTINGS[setting] = value;
+
+                    // Toggle filename, filesize and date
+                    if (group == 'fds-setting') {
+                        if (ACTIVE_SETTINGS[setting]) {
+                            $('.images').find(`.${setting}`).show();
+                        } else {
+                            $('.images').find(`.${setting}`).hide();
+                        }
                     }
 
+                    // Change layput when sortby & orderby
+                    if (['sortby', 'orderby'].indexOf(setting) !== -1) {
+                        showImages();
+                    }
+
+                    // Change layout when thumbsize changed
+                    if (setting == 'thumbsize') {
+                        $($(this).data('target')).val(value);
+                        THEME.updateThumbnail(value);
+                    }
+
+                    // Change layout when display type changed
                     if (setting == 'view') {
                         if (value == 'compact') {
                             // disableButton({attr: 'data-group', value: 'fds-setting'});
                             disableButton(['data-group', 'fds-setting']);
                             disableButton(['data-group', 'thumbsize-setting']);
-                            THEME.showCompact();
                         } else if (value == 'list') {
                             disableButton(['data-group', 'thumbsize-setting']);
                             enableButton(['data-group', 'fds-setting']);
                             disableButton(['data-setting', 'filename']);
-                            THEME.showList();
                         } else {
                             enableButton(['data-group', 'fds-setting']);
                             enableButton(['data-group', 'thumbsize-setting']);
-                            THEME.showThumbnail();
                         }
+                        showImages();
                     }
-                    // TODO: Change layout here
                 });
             });
         });
@@ -1959,7 +2110,7 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
         }
 
         $('#datatable').on('dblclick', 'tbody tr', function (e) {
-            //
+            //TODO
         });
 
         // window.opener.CKEDITOR.instances.editor.openDialog('mypluginDialog');

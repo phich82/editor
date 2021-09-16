@@ -56,23 +56,25 @@ if ($action == 'read' || $action == 'get') {
             $stat = stat("{$path}/{$file}");
             $info = pathinfo("{$path}/{$file}");
             $mime = finfo_file(finfo_open(FILEINFO_MIME_TYPE), "{$path}/{$file}");
-
+            $size = parse_filesize($stat['size']);
             if (preg_match("#^image\/.*#", $mime)) {
                 $src = 'http://'.$_SERVER['HTTP_HOST'].'/ckeditor/uploader/'.trim("{$path}/{$file}", './');
             } else {
                 $src = 'http://'.$_SERVER['HTTP_HOST'].'/ckeditor/uploader/images/'."{$info['extension']}.png";
             }
             $carry[] = [
-                'src'       => $src,
-                'folder'    => $pathRequest,
-                'size'      => format_filesize($stat['size']),
-                'accessed'  => date('Y-m-d H:i:s', $stat['atime']),
-                'modified'  => date('Y-m-d H:i:s', $stat['mtime']),
-                'created'   => date('Y-m-d H:i:s', $stat['ctime']),
-                'filename'  => $info['filename'],
-                'basename'  => $info['basename'],
-                'extension' => $info['extension'],
-                'mime'      => $mime,
+                'src'           => $src,
+                'folder'        => $pathRequest,
+                'formated_size' => format_filesize($stat['size']),
+                'size'          => (float) $size['size'],
+                'size_unit'     => $size['unit'],
+                'accessed'      => date('Y-m-d H:i:s', $stat['atime']),
+                'modified'      => date('Y-m-d H:i:s', $stat['mtime']),
+                'created'       => date('Y-m-d H:i:s', $stat['ctime']),
+                'filename'      => $info['filename'],
+                'basename'      => $info['basename'],
+                'extension'     => $info['extension'],
+                'mime'          => $mime,
             ];
         }
         return $carry;

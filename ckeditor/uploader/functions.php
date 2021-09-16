@@ -18,6 +18,15 @@ function format_filesize($B, $D = 2) {
     return sprintf("%.{$D}f", $B/pow(1024, $F)).' '.@$S[$F-1].'B';
 }
 
+function parse_filesize($B, $D = 2) {
+    $S = 'KMGTPEZY';
+    $F = floor((strlen($B) - 1) / 3);
+    return [
+        'size' => number_format($B/pow(1024, $F), $D),
+        'unit' => @$S[$F-1].'B'
+    ];
+}
+
 function createId($str) {
     return preg_replace('#\s+#', '_', strtolower(trim($str)));
 }
