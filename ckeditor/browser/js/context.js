@@ -290,4 +290,97 @@ var ContextMenu = {
             }
         }
     },
+    buildMenuItems(configs, menuItemType) {
+        let contextmenu = document.querySelector(configs.selectorContext);
+        let contextMenuItemsClassName = 'context-menu__items';
+        let contextMenuItemClassName  = 'context-menu__item';
+        let contextMenuLinkClassName  = 'context-menu__link';
+        let contextMenuLinkDisableClassName = 'context-menu__link-disable';
+        let contextActiveClassName = 'context-menu--active';
+        let contextMenuActiveClass = configs.contextActiveClassName;
+
+        function toggleMenuOff() {
+            contextmenu.classList.remove(contextMenuActiveClass);
+        }
+
+        function toggleMenuOn() {
+            contextmenu.classList.add(contextMenuActiveClass);
+        }
+
+        // Build menu items based its type
+        let itemsConfig = configs.types[menuItemType];
+        let ul = document.createElement('ul');
+
+        ul.classList.add(contextMenuItemsClassName)
+
+        itemsConfig.forEach(function(itemConfig) {
+            let li    = document.createElement('li');
+            let a     = document.createElement('a');
+            let icon  = document.createElement('label');
+            let label = document.createElement('span');
+
+            li.classList.add(contextMenuItemClassName);
+            a.classList.add(contextMenuLinkClassName);
+
+            icon.innerHTML  = itemConfig.icon  || '';
+            label.innerHTML = '&nbsp;' + (itemConfig.label || '');
+
+            a.appendChild(icon);
+            a.appendChild(label);
+            li.appendChild(a);
+
+            // Add event to each menu item on context menu
+            !itemDisabled && li.addEventListener(itemConfig.event || 'click', function (e) {
+                let keyAction = menuItemType + '.' + itemConfig.id;
+                if (configs.actions.hasOwnProperty(keyAction)) {
+                    let action = configs.actions[keyAction];
+                    if (typeof action === 'function') {
+                        action(element, e);
+                        toggleMenuOff();
+                    }
+                } else if (typeof itemConfig.action === 'function') {
+                    itemConfig.action(element, e);
+                    toggleMenuOff();
+                }
+            });
+            // Add menu item to context menu
+            ul.appendChild(li);
+        });
+
+        // Turn off menu context
+        document.addEventListener('click', function (e) {
+            contextmenu.removeAttribute('style');
+            toggleMenuOff();
+        })
+
+        // Add menu items to context menu
+        contextmenu.innerHTML = '';
+        contextmenu.appendChild(ul);
+        // Show context menu
+        contextmenu.style.top =  mouseY(window.event) + 'px';
+        contextmenu.style.left = mouseX(window.event) + 'px';
+        toggleMenuOn();
+    },
+    mouseX(e) {
+        if (e.pageY) {
+            return e.pageY;
+        }
+        if (e.clientY) {
+            return e.clientY + (document.documentElement.scrollTop
+                ? document.documentElement.scrollTop
+                : document.body.scrollTop);
+        }
+        return null;
+    },
+    mouseY(e) {
+        if (e.pageY) {
+            return e.pageY;
+        }
+        if (e.clientY) {
+            return e.clientY + (document.documentElement.scrollTop
+                ? document.documentElement.scrollTop
+                : document.body.scrollTop);
+        }
+        return null;
+    }
 };

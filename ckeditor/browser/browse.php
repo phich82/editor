@@ -285,6 +285,21 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
     <div id="context-menu-folder" class="context-menu"></div>
     <!-- /Context Menu -->
 
+    <div id="context-copy-move" class="context-menu">
+        <ul class="context-menu__items">
+            <li class="context-menu__item">
+                <a class="context-menu__link">
+                    <label><i class="bi bi-files"></i></label><span>&nbsp;Copy Here</span>
+                </a>
+            </li>
+            <li class="context-menu__item">
+                <a class="context-menu__link">
+                    <label><i class="bi bi-box-arrow-right"></i></label><span>&nbsp;Move Here</span>
+                </a>
+            </li>
+        </ul>
+    </div>
+
 <script>
     function showImages(path) {
         path = path || $('.folder-selected').attr('data-path');
@@ -381,6 +396,73 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
                         THEME.toggleFileNameSizeDate();
                         THEME.updateThumbnail(ACTIVE_SETTINGS.thumbsize);
                     }
+                    $('.wrap-image img').draggable({
+                        helper: 'clone',
+                        // disable: true,
+                        start(e, ui) {
+                            let elem = $(ui.helper);
+                            elem.css('marginTop', $(e.currentTarget).height() / 2);
+                            elem.css('marginLeft', $(e.currentTarget).width() * 2 / 3);
+                            elem.css('border', '5px solid #ffffff')
+                            elem.css('transform', 'rotate(-20deg)')
+                            elem.attr('width', '40px');
+                            elem.attr('height', '40px');
+                        },
+                        drag(e, ui) {
+                            ui.offset.left = e.pageX || e.clientX + (document.documentElement.scrollLeft || document.body.scrollLeft || 0);
+                            ui.offset.top  = e.pageY || e.clientY + (document.documentElement.scrollTop  || document.body.scrollTop  || 0);
+                        },
+                        stop(e, ui) {
+                            console.log('stop => ', ui)
+                        }
+                    });
+
+                    $('.sidebar button').droppable({
+                        accept: '.wrap-image img',
+                        // classes: {
+                        //     "ui-droppable-active": "ac",
+                        //     "ui-droppable-hover": "hv"
+                        // },
+                        // The dragging element starts dragging
+                        activate(e, ui) {
+                            //
+                        },
+                        // The dragging element stopped dragging
+                        deacrivate(e, ui) {
+                            //
+                        },
+                        // The dragging element moved on target element
+                        over(e, ui) {
+                            // Highlight folder
+                            $(this).css('background', '#ffffff');
+                        },
+                        // The dragging element moved out of target element
+                        out(e, ui) {
+                            // Turn off highlight folder
+                            $(this).css('background', 'transparent');
+                        },
+                        // Element moved on target element and dropped
+                        drop(e, ui) {
+                            // Turn off highlight folder
+                            $(this).css('background', 'transparent');
+                            let offset = $(this).offset();
+                            $('#context-copy-move').offset({
+                                top: offset.top + $(this).height(),
+                                left: offset.left + $(this).width() / 2
+                            });
+                            // Turn on menu context
+                            $('#context-copy-move').addClass('context-menu--active');
+                            // Turn off menu context
+                            document.addEventListener('click', function (e) {
+                                $('#context-copy-move').removeAttr('style');
+                                $('#context-copy-move').removeClass('context-menu--active');
+                            });
+
+                            // MenuContext.buildMenuItems({
+
+                            // }, 'copymove');
+                        }
+                    });
                 }
             },
             error: function (jqXHR, textStatus, errorThrown) {
@@ -2040,10 +2122,6 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
         if ($('.sidebar').find('.folder-selected').hasClass('folder-selected')) {
             $('.sidebar').find('.folder-selected .folder').click();
         }
-
-        $('#datatable').on('dblclick', 'tbody tr', function (e) {
-            //TODO
-        });
 
         // Change sortby and orderby in settings modal when sorting header of datatable changed
         $(document).on('order.dt', '#datatable', function () {

@@ -78,7 +78,7 @@
 .image-selected {
     border: 2px solid #0a90eb !important;
     position: relative;
-    overflow: hidden;
+    /* overflow: hidden; */
 }
 
 .image-selected:after {
