@@ -204,6 +204,7 @@
 .settings-modal .thumbnail-size input[name="thumbnail-size"] {
     width: 50px;
 }
+
 /* @Override datatable */
 table.dataTable thead th, table.dataTable thead td {
     border-bottom: 1px solid #ddd !important;
