@@ -301,9 +301,22 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
                     // If it is List View, show grid type
                     if (ACTIVE_SETTINGS.view == 'list') {
                         $('.main-content').html('<table id="datatable"></table>');
+                        let indexesColumn = THEME.indexesColumn;
+                        let columnDefs = THEME.columnDefs().map(function (row) {
+                            Object.keys(indexesColumn).forEach(function(column) {
+                                if (indexesColumn[column] === row.targets) {
+                                    if (ACTIVE_SETTINGS.hasOwnProperty(column)) {
+                                        row.visible = ACTIVE_SETTINGS[column];
+                                    }
+                                }
+                            });
+                            return row;
+                        });
+
                         THEME.addOption({
                             order: [[ THEME.indexesColumn[ACTIVE_SETTINGS.sortby], ACTIVE_SETTINGS.orderby ]],
                             data: dataResponse,
+                            columnDefs: columnDefs,
                             createdRow: function(row, data, dataIndex) { // @Hook: fired after row has already been created
                                 $(row).addClass('wrap-image context-menu-target');
                                 $(row).attr('data-ctx-item-type', 'image');
@@ -1671,6 +1684,7 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
                     targets: this.indexesColumn.filename,
                     title: 'File Name',
                     data: 'basename',
+                    visible: true,
                     render(data, type, row, meta) {
                         return `
                             ${row.filename}
@@ -1681,6 +1695,7 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
                     targets: this.indexesColumn.filesize,
                     title: 'File Size',
                     data: 'size',
+                    visible: true,
                     type: 'only-numeric',
                     render(data, type, row, meta) {
                         return `${row.formated_size}`;
@@ -1689,7 +1704,8 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
                 {
                     targets: this.indexesColumn.date,
                     title: 'Date',
-                    data: 'modified'
+                    data: 'modified',
+                    visible: true,
                 },
             ];
         },
@@ -1710,6 +1726,7 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
         },
         options: {
             // stateSave: true,
+            autoWidth: false,
             paging: false,
             searching: false,
             info: false,
@@ -1728,7 +1745,7 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
                 $(this.identity).empty();
             }
         },
-        redraw: function() {
+        redraw: function () {
             this.datatable = $(this.identity).DataTable(this.options).draw();
         },
         updateThumbnail: function(value) {
@@ -1756,6 +1773,24 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
                 blocks.removeClass('col-12');
                 blocks.addClass('col-12');
                 blocks.find('img').attr('height', value);
+            }
+        },
+        toggleColumns: function () {
+            if (this.datatable) {
+                let indexesColumn = this.indexesColumn;
+                let columnDefs = this.columnDefs().map(function (row) {
+                    Object.keys(indexesColumn).forEach(function(column) {
+                        if (indexesColumn[column] === row.targets) {
+                            if (ACTIVE_SETTINGS.hasOwnProperty(column)) {
+                                row.visible = ACTIVE_SETTINGS[column];
+                            }
+                        }
+                    });
+                    return row;
+                });
+                this.addOption({columnDefs});
+                this.destroy();
+                this.datatable = $(this.identity).DataTable(this.options).draw();
             }
         }
     };
@@ -1956,105 +1991,7 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
             }
         });
 
-        var data = [
-            {
-                "name": "1502021090901.png",
-                "src": "https://via.placeholder.com/150/0000FF/808080?Text=Digital.com",
-                "filesize": "250kb",
-                "date": "2021-09-09 15:37:21",
-            },
-            {
-                "name": "1502021090902.png",
-                "src": "https://via.placeholder.com/150/FFFF00/000000?Text=WebsiteBuilders.com",
-                "filesize": "370kb",
-                "date": "2021-09-09 17:30:11",
-            },
-            {
-                "name": "1502021090902.png",
-                "src": "https://via.placeholder.com/150/FFFF00/000000?Text=WebsiteBuilders.com",
-                "filesize": "370kb",
-                "date": "2021-09-09 17:30:11",
-            },
-            {
-                "name": "1502021090902.png",
-                "src": "https://via.placeholder.com/150/FFFF00/000000?Text=WebsiteBuilders.com",
-                "filesize": "370kb",
-                "date": "2021-09-09 17:30:11",
-            },
-            {
-                "name": "1502021090902.png",
-                "src": "https://via.placeholder.com/150/FFFF00/000000?Text=WebsiteBuilders.com",
-                "filesize": "370kb",
-                "date": "2021-09-09 17:30:11",
-            },
-            {
-                "name": "1502021090902.png",
-                "src": "https://via.placeholder.com/150/FFFF00/000000?Text=WebsiteBuilders.com",
-                "filesize": "370kb",
-                "date": "2021-09-09 17:30:11",
-            },
-            {
-                "name": "1502021090902.png",
-                "src": "https://via.placeholder.com/150/FFFF00/000000?Text=WebsiteBuilders.com",
-                "filesize": "370kb",
-                "date": "2021-09-09 17:30:11",
-            },
-            {
-                "name": "1502021090902.png",
-                "src": "https://via.placeholder.com/150/FFFF00/000000?Text=WebsiteBuilders.com",
-                "filesize": "370kb",
-                "date": "2021-09-09 17:30:11",
-            },
-            {
-                "name": "1502021090902.png",
-                "src": "https://via.placeholder.com/150/FFFF00/000000?Text=WebsiteBuilders.com",
-                "filesize": "370kb",
-                "date": "2021-09-09 17:30:11",
-            },
-            {
-                "name": "1502021090902.png",
-                "src": "https://via.placeholder.com/150/FFFF00/000000?Text=WebsiteBuilders.com",
-                "filesize": "370kb",
-                "date": "2021-09-09 17:30:11",
-            },
-            {
-                "name": "1502021090902.png",
-                "src": "https://via.placeholder.com/150/FFFF00/000000?Text=WebsiteBuilders.com",
-                "filesize": "370kb",
-                "date": "2021-09-09 17:30:11",
-            },
-            {
-                "name": "1502021090902.png",
-                "src": "https://via.placeholder.com/150/FFFF00/000000?Text=WebsiteBuilders.com",
-                "filesize": "370kb",
-                "date": "2021-09-09 17:30:11",
-            },
-            {
-                "name": "1502021090902.png",
-                "src": "https://via.placeholder.com/150/FFFF00/000000?Text=WebsiteBuilders.com",
-                "filesize": "370kb",
-                "date": "2021-09-09 17:30:11",
-            },
-            {
-                "name": "1502021090902.png",
-                "src": "https://via.placeholder.com/150/FFFF00/000000?Text=WebsiteBuilders.com",
-                "filesize": "370kb",
-                "date": "2021-09-09 17:30:11",
-            },
-            {
-                "name": "1502021090902.png",
-                "src": "https://via.placeholder.com/150/FFFF00/000000?Text=WebsiteBuilders.com",
-                "filesize": "370kb",
-                "date": "2021-09-09 17:30:11",
-            },
-            {
-                "name": "1502021090902.png",
-                "src": "https://via.placeholder.com/150/FFFF00/000000?Text=WebsiteBuilders.com",
-                "filesize": "370kb",
-                "date": "2021-09-09 17:30:11",
-            },
-        ];
-
+        // Handling events in settings
         Object.keys(SETTINGS).forEach(function (event) {
             SETTINGS[event].forEach(function (identity) {
                 $(identity).on(event, function (e) {
@@ -2070,6 +2007,10 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
                             $('.images').find(`.${setting}`).show();
                         } else {
                             $('.images').find(`.${setting}`).hide();
+                        }
+                        if (ACTIVE_SETTINGS.view == 'list') {
+                            // Toggle filename, filesize and date on datatable
+                            THEME.toggleColumns();
                         }
                     }
 
