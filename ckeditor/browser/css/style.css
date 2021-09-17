@@ -54,11 +54,13 @@
     /* padding: 10px 10px; */
 }
 .main-content .wrap-image {
-    background-color: #f7f8f9;
     padding: 10px 10px;
     border: 2px solid #f7f8f9;
     cursor: pointer;
     margin-bottom: 10px;
+}
+.main-content .wrap-image-bg {
+    background-color: #f7f8f9;
 }
 .main-content .block-image .fmodified,
 .main-content .block-image .fsize {
@@ -89,6 +91,11 @@
     right: 0;
     bottom: 0;
     position: absolute;
+}
+
+.target-highlight {
+    border: 2px solid transparent;
+    padding: 2px 4px;
 }
 
 /* Loading */
@@ -196,4 +203,11 @@
 
 .settings-modal .thumbnail-size input[name="thumbnail-size"] {
     width: 50px;
+}
+/* @Override datatable */
+table.dataTable thead th, table.dataTable thead td {
+    border-bottom: 1px solid #ddd !important;
+}
+table.dataTable.no-footer {
+    border-bottom: 1px solid #ddd !important;
 }

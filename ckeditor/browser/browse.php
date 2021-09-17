@@ -300,26 +300,26 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
 
                     // If it is List View, show grid type
                     if (ACTIVE_SETTINGS.view == 'list') {
-                        $('.main-content').html('<table id="datatable"></table>');
-                        let indexesColumn = THEME.indexesColumn;
+                        $('.main-content').html('<table id="datatable" class="hover row-border images"></table>');
                         let columnDefs = THEME.columnDefs().map(function (row) {
-                            Object.keys(indexesColumn).forEach(function(column) {
-                                if (indexesColumn[column] === row.targets) {
-                                    if (ACTIVE_SETTINGS.hasOwnProperty(column)) {
-                                        row.visible = ACTIVE_SETTINGS[column];
-                                    }
-                                }
-                            });
+                            let column = THEME.getColumnByIndex(row.targets);
+                            if (ACTIVE_SETTINGS.hasOwnProperty(column)) {
+                                // Default column is always visible as File Name
+                                row.visible = THEME.alwaysVisibleColumns.indexOf(column) !== -1 ? true : ACTIVE_SETTINGS[column];
+                            }
                             return row;
                         });
-
                         THEME.addOption({
                             order: [[ THEME.indexesColumn[ACTIVE_SETTINGS.sortby], ACTIVE_SETTINGS.orderby ]],
                             data: dataResponse,
                             columnDefs: columnDefs,
-                            createdRow: function(row, data, dataIndex) { // @Hook: fired after row has already been created
+                            // @Hook: fired after row has already been created
+                            createdRow: function(row, data, dataIndex) {
                                 $(row).addClass('wrap-image context-menu-target');
                                 $(row).attr('data-ctx-item-type', 'image');
+                                $(row).attr('data-mime', data.mine);
+                                $(row).attr('data-path', `${data.folder}/${data.basename}`);
+                                $(row).attr('data-src', data.src);
                             }
                         }).init('#datatable');
                         // Restart context menu for binding images to it
@@ -333,29 +333,15 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
                         if (ACTIVE_SETTINGS.sortby == 'filename') {
                             prev = prev.filename.toUpperCase();
                             next = next.filename.toUpperCase();
-                            if (prev < next) {
-                                return -orderby;
-                            }
-                            if (prev > next) {
-                                return orderby;
-                            }
-                            return 0;
+                            return prev == next ? 0 : (prev < next ? -orderby : orderby);
                         } else if (ACTIVE_SETTINGS.sortby == 'filesize') {
-                            if (prev.size < next.size) {
-                                return -orderby;
-                            }
-                            if (prev.size > next.size) {
-                                return orderby;
-                            }
-                            return 0;
+                            prev = new Date(prev.size);
+                            next = new Date(next.size);
+                            return prev == next ? 0 : (prev < next ? -orderby : orderby);
                         } else {
-                            if (new Date(prev.modified) < new Date(next.modified)) {
-                                return -orderby;
-                            }
-                            if (new Date(prev.modified) > new Date(next.modified)) {
-                                return orderby;
-                            }
-                            return 0;
+                            prev = new Date(prev.modified);
+                            next = new Date(next.modified);
+                            return prev == next ? 0 : (prev < next ? -orderby : orderby);
                         }
                     });
 
@@ -365,7 +351,7 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
                             out += '<div class="row row-image">';
                         }
                         out += '<div class="col-3 block-image">';
-                        out +=      `<div class="wrap-image context-menu-target" data-mime="${info.mime}" data-path="${info.folder}/${info.basename}" data-ctx-item-type="image">`;
+                        out +=      `<div class="wrap-image wrap-image-bg context-menu-target" data-mime="${info.mime}" data-path="${info.folder}/${info.basename}" data-src="${info.src}" data-ctx-item-type="image">`;
                         if (ACTIVE_SETTINGS.view == 'thumbnail') {
                             out +=          `<img class="image" src="${info.src}" height="100" width="100%" alt="${info.filename}" />`;
                             out +=          `<div class="fname filename">${info.basename}</div>`;
@@ -384,6 +370,7 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
                     });
                     out += '</div>';
 
+                    // Add to DOM
                     $('.main-content').html(out);
 
                     // Restart context menu for binding images to it
@@ -391,6 +378,7 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
 
                     // Update thumbnail layout
                     if (ACTIVE_SETTINGS.view == 'thumbnail') {
+                        THEME.toggleFileNameSizeDate();
                         THEME.updateThumbnail(ACTIVE_SETTINGS.thumbsize);
                     }
                 }
@@ -420,84 +408,80 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
         // Selected folder
         var folderSelected = $(elementTarget).attr('data-path');
         // Create temporary DOM for loading modal
-        createWrapper(function (classNameWrap) {
-            $('body').find(`.${classNameWrap}`).load('./modals/newedit.html', function () {
-                $(function () {
-                    var modal = $(document).find('.modal-app');
-                    // Change modal title, input label & placeholder
-                    modal.find('.modal-title').html('New Name');
-                    modal.find('.modal-body .label-input').html('Type the new folder name:');
-                    modal.find('.modal-body .label-input').attr('placeholder', 'Your folder name');
-                    // Focus to input
-                    setTimeout(function() {
-                        modal.find('#input').focus();
-                    }, 1000);
+        load('./modals/newedit.html', function (classNameWrap) {
+            var modal = $(document).find('.modal-app');
+            // Change modal title, input label & placeholder
+            modal.find('.modal-title').html('New Name');
+            modal.find('.modal-body .label-input').html('Type the new folder name:');
+            modal.find('.modal-body .label-input').attr('placeholder', 'Your folder name');
+            // Focus to input
+            setTimeout(function() {
+                modal.find('#input').focus();
+            }, 1000);
 
-                    modal.modal('toggle');
+            modal.modal('toggle');
 
-                    modal.on('click', '.close', function () {
-                        modal.modal('hide');
-                    });
+            modal.on('click', '.close', function () {
+                modal.modal('hide');
+            });
 
-                    modal.on('hide.bs.modal', function (e) {
-                        $(`.${classNameWrap}`).remove();
-                    });
+            modal.on('hide.bs.modal', function (e) {
+                $(`.${classNameWrap}`).remove();
+            });
 
-                    modal.on('click', '.ok', function (e) {
-                        e.stopPropagation();
-                        e.preventDefault();
+            modal.on('click', '.ok', function (e) {
+                e.stopPropagation();
+                e.preventDefault();
 
-                        let subfolder = modal.find('input[name="input"]').val().trim();
+                let subfolder = modal.find('input[name="input"]').val().trim();
 
-                        if (!subfolder) {
-                            alert('You must enter a folder name!');
-                            return;
+                if (!subfolder) {
+                    alert('You must enter a folder name!');
+                    return;
+                }
+
+                var charsNotAllowed = /[<>:"\/\\|?*\x00-\x1F]|^(?:aux|con|clock\$|nul|prn|com[1-9]|lpt[1-9])$/i;
+                if (charsNotAllowed.test(subfolder)) {
+                    alert('Folder name contains invalid characters!');
+                    return;
+                }
+
+                if (!folderSelected) {
+                    alert('Please select the parent folder before creating subfolder!');
+                    return;
+                }
+
+                modal.find('.cancelok').hide();
+                modal.find('.loader').show();
+
+                let data = {action: 'create', folder: folderSelected + '/' + subfolder};
+
+                $.ajax({
+                    url: '../uploader/do_folder.php',
+                    method: 'POST',
+                    data: data,
+                    dataType: 'json',
+                    contentType: 'application/x-www-form-urlencoded;charset=UTF-8',
+                    cache: false,
+                    success: function(response, status, jqXHR) {
+                        if (response && response.success) {
+                            modal.modal('hide');
+                        } else {
+                            modal.find('.cancelok').show();
+                            modal.find('.error_msg').html(response.error).show();
+
+                            hideAfter(modal.find('.error_msg'));
                         }
+                        modal.find('.loader').hide();
+                    },
+                    error: function (jqXHR, textStatus, errorThrown) {
+                        modal.find('.cancelok').show();
+                        modal.find('.uploaderror').html(jqXHR.responseText);
+                        modal.find('.loader').hide();
 
-                        var charsNotAllowed = /[<>:"\/\\|?*\x00-\x1F]|^(?:aux|con|clock\$|nul|prn|com[1-9]|lpt[1-9])$/i;
-                        if (charsNotAllowed.test(subfolder)) {
-                            alert('Folder name contains invalid characters!');
-                            return;
-                        }
-
-                        if (!folderSelected) {
-                            alert('Please select the parent folder before creating subfolder!');
-                            return;
-                        }
-
-                        modal.find('.cancelok').hide();
-                        modal.find('.loader').show();
-
-                        let data = {action: 'create', folder: folderSelected + '/' + subfolder};
-
-                        $.ajax({
-                            url: '../uploader/do_folder.php',
-                            method: 'POST',
-                            data: data,
-                            dataType: 'json',
-                            contentType: 'application/x-www-form-urlencoded;charset=UTF-8',
-                            cache: false,
-                            success: function(response, status, jqXHR) {
-                                if (response && response.success) {
-                                    modal.modal('hide');
-                                } else {
-                                    modal.find('.cancelok').show();
-                                    modal.find('.error_msg').html(response.error).show();
-
-                                    hideAfter(modal.find('.error_msg'));
-                                }
-                                modal.find('.loader').hide();
-                            },
-                            error: function (jqXHR, textStatus, errorThrown) {
-                                modal.find('.cancelok').show();
-                                modal.find('.uploaderror').html(jqXHR.responseText);
-                                modal.find('.loader').hide();
-
-                                hideAfter(modal.find('.error_msg'));
-                                modal.find('.loader').hide();
-                            }
-                        });
-                    });
+                        hideAfter(modal.find('.error_msg'));
+                        modal.find('.loader').hide();
+                    }
                 });
             });
         });
@@ -509,94 +493,90 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
         // Selected folder
         var folderSelected = $(elementTarget).attr('data-path');
         // Create temporary DOM for loading modal
-        createWrapper(function (classNameWrap) {
-            $('body').find(`.${classNameWrap}`).load('./modals/newedit.html', function () {
-                function loadDataOnInput(modal) {
-                    let input = modal.find('#input');
-                    input.val(getFileName(folderSelected));
-                    // Focus after 1s
-                    setTimeout(function() {
-                        input.focus();
-                    }, 1000);
+        load('./modals/newedit.html', function (classNameWrap) {
+            function loadDataOnInput(modal) {
+                let input = modal.find('#input');
+                input.val(getFileName(folderSelected));
+                // Focus after 1s
+                setTimeout(function() {
+                    input.focus();
+                }, 1000);
+            }
+            var modal = $(document).find('.modal-app');
+            // Change modal title, input label & placeholder
+            modal.find('.modal-title').html('Rename');
+            modal.find('.modal-body .label-input').html('Type the new folder name:');
+            modal.find('.modal-body .label-input').attr('placeholder', 'Your folder name');
+            // Focus to input
+            loadDataOnInput(modal);
+
+            modal.modal('toggle');
+
+            modal.on('click', '.close', function () {
+                modal.modal('hide');
+            });
+
+            modal.on('hide.bs.modal', function (e) {
+                $(`.${classNameWrap}`).remove();
+            });
+
+            modal.on('click', '.ok', function (e) {
+                e.stopPropagation();
+                e.preventDefault();
+
+                let folder = modal.find('input[name="input"]').val().trim();
+
+                if (!folder) {
+                    alert('You must enter a folder name!');
+                    return;
                 }
-                $(function () {
-                    var modal = $(document).find('.modal-app');
-                    // Change modal title, input label & placeholder
-                    modal.find('.modal-title').html('Rename');
-                    modal.find('.modal-body .label-input').html('Type the new folder name:');
-                    modal.find('.modal-body .label-input').attr('placeholder', 'Your folder name');
-                    // Focus to input
-                    loadDataOnInput(modal);
 
-                    modal.modal('toggle');
+                var charsNotAllowed = /[<>:"\/\\|?*\x00-\x1F]|^(?:aux|con|clock\$|nul|prn|com[1-9]|lpt[1-9])$/i;
+                if (charsNotAllowed.test(folder)) {
+                    alert('Folder name contains invalid characters!');
+                    return;
+                }
 
-                    modal.on('click', '.close', function () {
-                        modal.modal('hide');
-                    });
+                if (!folderSelected) {
+                    alert('Please select the folder before renaming!');
+                    return;
+                }
 
-                    modal.on('hide.bs.modal', function (e) {
-                        $(`.${classNameWrap}`).remove();
-                    });
+                modal.find('.cancelok').hide();
+                modal.find('.loader').show();
 
-                    modal.on('click', '.ok', function (e) {
-                        e.stopPropagation();
-                        e.preventDefault();
+                let data = {action: 'rename', old_folder: folderSelected, folder: folder};
 
-                        let folder = modal.find('input[name="input"]').val().trim();
+                $.ajax({
+                    url: '../uploader/do_folder.php',
+                    method: 'POST',
+                    data: data,
+                    dataType: 'json',
+                    contentType: 'application/x-www-form-urlencoded;charset=UTF-8',
+                    cache: false,
+                    success: function(response, status, jqXHR) {
+                        if (response && response.success) {
+                            // Update info of selected current folder
+                            let selectedCurrentFolderElement = $(`.${selectedCurrentFolderClass}`);
+                            selectedCurrentFolderElement.attr('data-path', response.data.path)
+                            selectedCurrentFolderElement.find('.folder span').html(response.data.name);
+                            selectedCurrentFolderElement.removeClass(selectedCurrentFolderClass);
+                            // Hide modal
+                            modal.modal('hide');
+                        } else {
+                            modal.find('.cancelok').show();
+                            modal.find('.error_msg').html(response.error).show();
 
-                        if (!folder) {
-                            alert('You must enter a folder name!');
-                            return;
+                            hideAfter(modal.find('.error_msg'));
                         }
-
-                        var charsNotAllowed = /[<>:"\/\\|?*\x00-\x1F]|^(?:aux|con|clock\$|nul|prn|com[1-9]|lpt[1-9])$/i;
-                        if (charsNotAllowed.test(folder)) {
-                            alert('Folder name contains invalid characters!');
-                            return;
-                        }
-
-                        if (!folderSelected) {
-                            alert('Please select the folder before renaming!');
-                            return;
-                        }
-
-                        modal.find('.cancelok').hide();
-                        modal.find('.loader').show();
-
-                        let data = {action: 'rename', old_folder: folderSelected, folder: folder};
-
-                        $.ajax({
-                            url: '../uploader/do_folder.php',
-                            method: 'POST',
-                            data: data,
-                            dataType: 'json',
-                            contentType: 'application/x-www-form-urlencoded;charset=UTF-8',
-                            cache: false,
-                            success: function(response, status, jqXHR) {
-                                if (response && response.success) {
-                                    // Update info of selected current folder
-                                    let selectedCurrentFolderElement = $(`.${selectedCurrentFolderClass}`);
-                                    selectedCurrentFolderElement.attr('data-path', response.data.path)
-                                    selectedCurrentFolderElement.find('.folder span').html(response.data.name);
-                                    selectedCurrentFolderElement.removeClass(selectedCurrentFolderClass);
-                                    // Hide modal
-                                    modal.modal('hide');
-                                } else {
-                                    modal.find('.cancelok').show();
-                                    modal.find('.error_msg').html(response.error).show();
-
-                                    hideAfter(modal.find('.error_msg'));
-                                }
-                                modal.find('.loader').hide();
-                            },
-                            error: function (jqXHR, textStatus, errorThrown) {
-                                modal.find('.cancelok').show();
-                                modal.find('.error_msg').html(jqXHR.responseText).show();
-                                hideAfter(modal.find('.error_msg'));
-                                modal.find('.loader').hide();
-                            }
-                        });
-                    });
+                        modal.find('.loader').hide();
+                    },
+                    error: function (jqXHR, textStatus, errorThrown) {
+                        modal.find('.cancelok').show();
+                        modal.find('.error_msg').html(jqXHR.responseText).show();
+                        hideAfter(modal.find('.error_msg'));
+                        modal.find('.loader').hide();
+                    }
                 });
             });
         });
@@ -608,68 +588,64 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
         var selectedCurrentFolderClass = markCurrentFolderSelected(elementTarget);
         var folderDeleted = $(elementTarget).data('path');
         // Create temporary DOM for loading modal
-        createWrapper(function (classNameWrap) {
-            $('body').find(`.${classNameWrap}`).load('./modals/confirmation.html', function () {
-                $(function () {
-                    var modal = $(document).find('.modal-app');
-                    // Add confirmation before deleting
-                    modal.find('#message').html(`
-                        <p style="text-align: center;">Are you sure to delete folder <strong>${folderDeleted}</strong>?</p>
-                    `);
+        load('./modals/confirmation.html', function (classNameWrap) {
+            var modal = $(document).find('.modal-app');
+            // Add confirmation before deleting
+            modal.find('#message').html(`
+                <p style="text-align: center;">Are you sure to delete folder <strong>${folderDeleted}</strong>?</p>
+            `);
 
-                    modal.modal('toggle');
+            modal.modal('toggle');
 
-                    modal.on('click', '.close', function () {
-                        modal.modal('hide');
-                    });
+            modal.on('click', '.close', function () {
+                modal.modal('hide');
+            });
 
-                    modal.on('hide.bs.modal', function (e) {
-                        $(`.${classNameWrap}`).remove();
-                    });
+            modal.on('hide.bs.modal', function (e) {
+                $(`.${classNameWrap}`).remove();
+            });
 
-                    modal.on('click', '.ok', function (e) {
-                        e.stopPropagation();
-                        e.preventDefault();
+            modal.on('click', '.ok', function (e) {
+                e.stopPropagation();
+                e.preventDefault();
 
-                        modal.find('.cancelok').hide();
-                        modal.find('.loader').show();
+                modal.find('.cancelok').hide();
+                modal.find('.loader').show();
 
-                        let data = {action: 'delete', folder: folderDeleted};
+                let data = {action: 'delete', folder: folderDeleted};
 
-                        $.ajax({
-                            url: '../uploader/do_folder.php',
-                            method: 'POST',
-                            data: data,
-                            dataType: 'json',
-                            cache: false,
-                            contentType: 'application/x-www-form-urlencoded; charset=UTF-8',
-                            success: function(response, status, jqXHR) {
-                                if (response && response.success) {
-                                    // TODO:
-                                    // 1. Remove deleted folder from sidebar
-                                    // 2. Check whether it has the parent folder?
-                                    // 2.1 If has, then if parent folder has more 2 subfolders then keeping dropdown of it.
-                                    // 2.2 Otherwise, remove dropdown from parent folder
-                                    // 3. Clear all images shown corresponding to the slected folder for deleting
-                                    // 4. Last, automatically click on parent folder
-                                    modal.modal('hide');
-                                } else {
-                                    modal.find('.cancelok').show();
-                                    modal.find('.error_msg').html(response.error).show();
+                $.ajax({
+                    url: '../uploader/do_folder.php',
+                    method: 'POST',
+                    data: data,
+                    dataType: 'json',
+                    cache: false,
+                    contentType: 'application/x-www-form-urlencoded; charset=UTF-8',
+                    success: function(response, status, jqXHR) {
+                        if (response && response.success) {
+                            // TODO:
+                            // 1. Remove deleted folder from sidebar
+                            // 2. Check whether it has the parent folder?
+                            // 2.1 If has, then if parent folder has more 2 subfolders then keeping dropdown of it.
+                            // 2.2 Otherwise, remove dropdown from parent folder
+                            // 3. Clear all images shown corresponding to the slected folder for deleting
+                            // 4. Last, automatically click on parent folder
+                            modal.modal('hide');
+                        } else {
+                            modal.find('.cancelok').show();
+                            modal.find('.error_msg').html(response.error).show();
 
-                                    hideAfter(modal.find('.error_msg'));
-                                }
-                                modal.find('.loader').hide();
-                            },
-                            error: function (jqXHR, textStatus, errorThrown) {
-                                modal.find('.cancelok').show();
-                                modal.find('.error_msg').html(jqXHR.responseText).show();
+                            hideAfter(modal.find('.error_msg'));
+                        }
+                        modal.find('.loader').hide();
+                    },
+                    error: function (jqXHR, textStatus, errorThrown) {
+                        modal.find('.cancelok').show();
+                        modal.find('.error_msg').html(jqXHR.responseText).show();
 
-                                hideAfter(modal.find('.error_msg'));
-                                modal.find('.loader').hide();
-                            }
-                        });
-                    });
+                        hideAfter(modal.find('.error_msg'));
+                        modal.find('.loader').hide();
+                    }
                 });
             });
         });
@@ -678,101 +654,98 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
     function showRenameFileModal(elementTarget) {
         let oldFile = $(elementTarget).attr('data-path');
         // Create temporary DOM for loading modal
-        createWrapper(function (classNameWrap) {
-            $('body').find(`.${classNameWrap}`).load('./modals/newedit.html', function () {
-                function loadDataOnInput(modal) {
-                    let input = modal.find('#input');
-                    input.val(getFileName(oldFile));
-                    // Focus after 1s
-                    setTimeout(function() {
-                        input.focus();
-                    }, 1000);
+        load('./modals/newedit.html', function (classNameWrap) {
+            function loadDataOnInput(modal) {
+                let input = modal.find('#input');
+                input.val(getFileName(oldFile));
+                // Focus after 1s
+                setTimeout(function() {
+                    input.focus();
+                }, 1000);
+            }
+
+            var modal = $(document).find('.modal-app');
+
+            // Change title, input label & placeholder
+            modal.find('.modal-title').html('Rename');
+            modal.find('.modal-body .label-input').html('Type the new file name:');
+            modal.find('.modal-body #input').attr('placeholder', 'Enter your filename');
+
+            loadDataOnInput(modal);
+
+            modal.modal('toggle');
+
+            modal.on('click', '.close', function (e) {
+                modal.modal('hide');
+            });
+
+            modal.on('hide.bs.modal', function (e) {
+                $(`.${classNameWrap}`).remove();
+            });
+
+            modal.on('click', '.ok', function (e) {
+                e.stopPropagation();
+                e.preventDefault();
+
+                let newFile = modal.find('input[name="input"]').val().trim();
+
+                // Validate: filename is empty
+                if (!newFile) {
+                    alert('You must enter a filename!');
+                    return;
                 }
-                $(function () {
-                    var modal = $(document).find('.modal-app');
+                // Validate: filename contains invalid characters
+                var charsNotAllowed = /[<>:"\/\\|?*\x00-\x1F]|^(?:aux|con|clock\$|nul|prn|com[1-9]|lpt[1-9])$/i;
+                if (charsNotAllowed.test(newFile)) {
+                    alert('Filename contains invalid characters!');
+                    return;
+                }
 
-                    // Change title, input label & placeholder
-                    modal.find('.modal-title').html('Rename');
-                    modal.find('.modal-body .label-input').html('Type the new file name:');
-                    modal.find('.modal-body #input').attr('placeholder', 'Enter your filename');
+                modal.find('.cancelok').hide();
+                modal.find('.loader').show();
 
-                    loadDataOnInput(modal);
+                let data = {
+                    action: 'rename',
+                    old_file: oldFile,
+                    new_file: newFile
+                };
 
-                    modal.modal('toggle');
+                $.ajax({
+                    url: '../uploader/do_file.php',
+                    method: 'POST',
+                    data: data,
+                    cache: false,
+                    dataType: 'json',
+                    contentType: 'application/x-www-form-urlencoded; charset=UTF-8',
+                    success: function(response, status, jqXHR) {
+                        if (response && response.success) {
+                            let data = response.data;
+                            let imageSelected = $('.images').find('.image-selected');
+                            // Update information of image selected
+                            imageSelected.attr('data-path', data.path);
+                            imageSelected.attr('data-mime', data.mime);
+                            imageSelected.find('img').attr('src', data.src);
+                            imageSelected.find('img').attr('alt', data.filename);
+                            imageSelected.find('.fname').html(data.basename);
+                            imageSelected.find('.fmodified').html(data.modified);
+                            imageSelected.find('.fsize').html(data.size);
+                            // Hide modal
+                            modal.modal('hide');
+                        } else {
+                            modal.find('.cancelok').show();
+                            modal.find('.error_msg').html(response.error).show();
 
-                    modal.on('click', '.close', function (e) {
-                        modal.modal('hide');
-                    });
-
-                    modal.on('hide.bs.modal', function (e) {
-                        $(`.${classNameWrap}`).remove();
-                    });
-
-                    modal.on('click', '.ok', function (e) {
-                        e.stopPropagation();
-                        e.preventDefault();
-
-                        let newFile = modal.find('input[name="input"]').val().trim();
-
-                        // Validate: filename is empty
-                        if (!newFile) {
-                            alert('You must enter a filename!');
-                            return;
+                            hideAfter(modal.find('.error_msg'));
                         }
-                        // Validate: filename contains invalid characters
-                        var charsNotAllowed = /[<>:"\/\\|?*\x00-\x1F]|^(?:aux|con|clock\$|nul|prn|com[1-9]|lpt[1-9])$/i;
-                        if (charsNotAllowed.test(newFile)) {
-                            alert('Filename contains invalid characters!');
-                            return;
-                        }
+                        modal.find('.loader').hide();
+                    },
+                    error: function (jqXHR, textStatus, errorThrown) {
+                        modal.find('.cancelok').show();
+                        modal.find('.error_msg').html(jqXHR.responseText).show();
 
-                        modal.find('.cancelok').hide();
-                        modal.find('.loader').show();
-
-                        let data = {
-                            action: 'rename',
-                            old_file: oldFile,
-                            new_file: newFile
-                        };
-
-                        $.ajax({
-                            url: '../uploader/do_file.php',
-                            method: 'POST',
-                            data: data,
-                            cache: false,
-                            dataType: 'json',
-                            contentType: 'application/x-www-form-urlencoded; charset=UTF-8',
-                            success: function(response, status, jqXHR) {
-                                if (response && response.success) {
-                                    let data = response.data;
-                                    let imageSelected = $('.images').find('.image-selected');
-                                    // Update information of image selected
-                                    imageSelected.attr('data-path', data.path);
-                                    imageSelected.attr('data-mime', data.mime);
-                                    imageSelected.find('img').attr('src', data.src);
-                                    imageSelected.find('img').attr('alt', data.filename);
-                                    imageSelected.find('.fname').html(data.basename);
-                                    imageSelected.find('.fmodified').html(data.modified);
-                                    imageSelected.find('.fsize').html(data.size);
-                                    // Hide modal
-                                    modal.modal('hide');
-                                } else {
-                                    modal.find('.cancelok').show();
-                                    modal.find('.error_msg').html(response.error).show();
-
-                                    hideAfter(modal.find('.error_msg'));
-                                }
-                                modal.find('.loader').hide();
-                            },
-                            error: function (jqXHR, textStatus, errorThrown) {
-                                modal.find('.cancelok').show();
-                                modal.find('.error_msg').html(jqXHR.responseText).show();
-
-                                hideAfter(modal.find('.error_msg'));
-                                modal.find('.loader').hide();
-                            }
-                        });
-                    });
+                        hideAfter(modal.find('.error_msg'));
+                        modal.find('.loader').hide();
+                    }
                 });
             });
         });
@@ -782,74 +755,68 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
     function showDeleteFileModal(elementTarget) {
         let path = $(elementTarget).attr('data-path');
         // Add temporary DOM for loading modal
-        createWrapper(function (classNameWrap) {
-            // Load confirmation template
-            $('body').find(`.${classNameWrap}`).load('./modals/confirmation.html', function () {
-                // Handle next after template loaded
-                $(function () {
-                    var modal = $(document).find('.modal-app');
-                    // Add confirmation before deleting
-                    modal.find('#message').html(`
-                        <p style="text-align: center;">Are you sure to delete file <strong>${path}</strong>?</p>
-                    `);
-                    // Change Text for Save button
-                    modal.find('.ok').html('OK');
-                    // Show modal
-                    modal.modal('toggle');
-                    // Hide modal when click on close button
-                    $(document).on('click', '.modal-app .close', function () {
-                        modal.modal('hide');
-                    });
-                    // Delete DOM
-                    modal.on('hide.bs.modal', function (e) {
-                        $(`.${classNameWrap}`).remove();
-                    });
-                    // Click on OK button
-                    modal.on('click', '.ok', function (e) {
-                        e.stopPropagation();
-                        e.preventDefault();
+        load('./modals/confirmation.html', function (classNameWrap) {
+            var modal = $(document).find('.modal-app');
+            // Add confirmation before deleting
+            modal.find('#message').html(`
+                <p style="text-align: center;">Are you sure to delete file <strong>${path}</strong>?</p>
+            `);
+            // Change Text for Save button
+            modal.find('.ok').html('OK');
+            // Show modal
+            modal.modal('toggle');
+            // Hide modal when click on close button
+            $(document).on('click', '.modal-app .close', function () {
+                modal.modal('hide');
+            });
+            // Delete DOM
+            modal.on('hide.bs.modal', function (e) {
+                $(`.${classNameWrap}`).remove();
+            });
+            // Click on OK button
+            modal.on('click', '.ok', function (e) {
+                e.stopPropagation();
+                e.preventDefault();
 
-                        modal.find('.cancelok').hide();
-                        modal.find('.loader').show();
+                modal.find('.cancelok').hide();
+                modal.find('.loader').show();
 
-                        let data = {action: 'delete', file: path};
+                let data = {action: 'delete', file: path};
 
-                        $.ajax({
-                            url: '../uploader/do_file.php',
-                            method: 'POST',
-                            data: data,
-                            cache: false,
-                            dataType: 'json',
-                            contentType: 'application/x-www-form-urlencoded; charset=UTF-8',
+                $.ajax({
+                    url: '../uploader/do_file.php',
+                    method: 'POST',
+                    data: data,
+                    cache: false,
+                    dataType: 'json',
+                    contentType: 'application/x-www-form-urlencoded; charset=UTF-8',
 
-                            // data: JSON.stringify(data), // server => parse body (json string) to array
-                            // contentType: 'application/json;charset=utf-8',
+                    // data: JSON.stringify(data), // server => parse body (json string) to array
+                    // contentType: 'application/json;charset=utf-8',
 
-                            // data: new FormData(),
-                            // contentType: false, // data = new FormData()
-                            // processData: false,
-                            success: function(response, status, jqXHR) {
-                                if (response && response.success) {
-                                    // Reload image area
-                                    let selectedCurrentFolder = $('.folder-selected').attr('data-path');
-                                    showImages(selectedCurrentFolder);
-                                    // Hide modal
-                                    modal.modal('hide');
-                                } else {
-                                    modal.find('.cancelok').show();
-                                    modal.find('.error_msg').html(response.error).show();
-                                    hideAfter(modal.find('.error_msg'));
-                                }
-                                modal.find('.loader').hide();
-                            },
-                            error: function (jqXHR, textStatus, errorThrown) {
-                                modal.find('.cancelok').show();
-                                modal.find('.error_msg').html(jqXHR.responseText).show();
-                                hideAfter(modal.find('.error_msg'));
-                                modal.find('.loader').hide();
-                            }
-                        });
-                    });
+                    // data: new FormData(),
+                    // contentType: false, // data = new FormData()
+                    // processData: false,
+                    success: function(response, status, jqXHR) {
+                        if (response && response.success) {
+                            // Reload image area
+                            let selectedCurrentFolder = $('.folder-selected').attr('data-path');
+                            showImages(selectedCurrentFolder);
+                            // Hide modal
+                            modal.modal('hide');
+                        } else {
+                            modal.find('.cancelok').show();
+                            modal.find('.error_msg').html(response.error).show();
+                            hideAfter(modal.find('.error_msg'));
+                        }
+                        modal.find('.loader').hide();
+                    },
+                    error: function (jqXHR, textStatus, errorThrown) {
+                        modal.find('.cancelok').show();
+                        modal.find('.error_msg').html(jqXHR.responseText).show();
+                        hideAfter(modal.find('.error_msg'));
+                        modal.find('.loader').hide();
+                    }
                 });
             });
         });
@@ -860,668 +827,664 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
         var srcImgSelected = $(elementTarget).find('img').attr('src');
 
         load('./modals/slideshow.html', function (classNameWrap) {
-            $(function () {
-                var modal = $(document).find('.modal-app');
-                var slideIndex = 1;
+            var modal = $(document).find('.modal-app');
+            var slideIndex = 1;
 
-                modal.modal('toggle');
+            modal.modal('toggle');
 
-                modal.on('click', '.close', function (e) {
-                    modal.modal('hide');
-                });
+            modal.on('click', '.close', function (e) {
+                modal.modal('hide');
+            });
 
-                // Click PREV button
-                modal.on('click', '.prev', function (e) {
-                    goToSlide(-1);
-                });
+            // Click PREV button
+            modal.on('click', '.prev', function (e) {
+                goToSlide(-1);
+            });
 
-                // Click NEXT button
-                modal.on('click', '.next', function (e) {
-                    goToSlide(1);
-                });
+            // Click NEXT button
+            modal.on('click', '.next', function (e) {
+                goToSlide(1);
+            });
 
-                modal.on('hide.bs.modal', function (e) {
-                    $(`.${classNameWrap}`).remove();
-                });
+            modal.on('hide.bs.modal', function (e) {
+                $(`.${classNameWrap}`).remove();
+            });
 
-                // Show the image slides after modal shown
-                modal.on('shown.bs.modal', function (e) {
-                    // Get images by folder
-                    $.ajax({
-                        url: '../uploader/do_file.php',
-                        method: 'POST',
-                        data: { path: selectedCurrentFolder, action: 'read' },
-                        dataType: 'json',
-                        success: function (response) {
-                            if (response && response.success) {
-                                let out = '';
-                                response.data.forEach(function (info, idx) {
-                                    // Image selected will be shown
-                                    if (info.src == srcImgSelected) {
-                                        slideIndex = idx + 1;
-                                    }
-                                    out += `<div class="slide${ info.src != srcImgSelected ? ' faded' : ''}">
-                                                <img src="${info.src}">
-                                            </div>`;
-                                });
-                                modal.find('.slides').html(out);
-                                // Show image selected
-                                showSlides(slideIndex);
-                            }
-                        },
-                        error: function (jqXHR, textStatus, errorThrown) {
-                            alert(jqXHR.responseText);
-                            modal.modal('hide');
+            // Show the image slides after modal shown
+            modal.on('shown.bs.modal', function (e) {
+                // Get images by folder
+                $.ajax({
+                    url: '../uploader/do_file.php',
+                    method: 'POST',
+                    data: { path: selectedCurrentFolder, action: 'read' },
+                    dataType: 'json',
+                    success: function (response) {
+                        if (response && response.success) {
+                            let out = '';
+                            response.data.forEach(function (info, idx) {
+                                // Image selected will be shown
+                                if (info.src == srcImgSelected) {
+                                    slideIndex = idx + 1;
+                                }
+                                out += `<div class="slide${ info.src != srcImgSelected ? ' faded' : ''}">
+                                            <img src="${info.src}">
+                                        </div>`;
+                            });
+                            modal.find('.slides').html(out);
+                            // Show image selected
+                            showSlides(slideIndex);
                         }
-                    });
+                    },
+                    error: function (jqXHR, textStatus, errorThrown) {
+                        alert(jqXHR.responseText);
+                        modal.modal('hide');
+                    }
                 });
+            });
 
-                // Next/previous controls
-                function goToSlide(n) {
-                    showSlides(slideIndex += n);
+            // Next/previous controls
+            function goToSlide(n) {
+                showSlides(slideIndex += n);
+            }
+            // Show current slide
+            function showSlides(n) {
+                var slides = modal.find('.slide');
+                if (n > slides.length) {slideIndex = 1}
+                if (n < 1) {slideIndex = slides.length}
+                // Hide all previous slides
+                for (let i = 0; i < slides.length; i++) {
+                    slides[i].style.display = 'none';
                 }
                 // Show current slide
-                function showSlides(n) {
-                    var slides = modal.find('.slide');
-                    if (n > slides.length) {slideIndex = 1}
-                    if (n < 1) {slideIndex = slides.length}
-                    // Hide all previous slides
-                    for (let i = 0; i < slides.length; i++) {
-                        slides[i].style.display = 'none';
-                    }
-                    // Show current slide
-                    slides[slideIndex - 1].style.display = 'block';
-                }
-            });
+                slides[slideIndex - 1].style.display = 'block';
+            }
         });
     }
 
     function showImageProcessorModal(elementTarget) {
         var pathImageSelected = $(elementTarget).attr('data-path');
-        var srcImageSelected = $(elementTarget).find('img').attr('src');
+        var srcImageSelected  = $(elementTarget).attr('data-src') || $(elementTarget).find('img').attr('src');
 
         load('./modals/image-processor.html', function (classNameWrap) {
-            $(function () {
-                var modal = $('.' + classNameWrap).find('.modal-app');
+            var modal = $('.' + classNameWrap).find('.modal-app');
 
-                var CANVAS_ID = '#canvas';
-                var CANVAS_HEIGHT = 400;
-                var CANVAS_WIDTH  = 500;
-                var CROP_BOX_WIDTH  = 200;
-                var CROP_BOX_HEIGHT = 200;
-                var IS_CHANGED_DATA = false;
+            var CANVAS_ID = '#canvas';
+            var CANVAS_HEIGHT = 400;
+            var CANVAS_WIDTH  = 500;
+            var CROP_BOX_WIDTH  = 200;
+            var CROP_BOX_HEIGHT = 200;
+            var IS_CHANGED_DATA = false;
 
-                var SLIDERS = {
-                    '#slider-blur'      : {min: -100, max: 100, val: 0},
-                    '#slider-brightness': {min: -100, max: 100, val: 0},
-                    '#slider-contrast'  : {min: -100, max: 100, val: 0},
-                    '#slider-saturation': {min: -100, max: 100, val: 0},
-                    '#slider-exposure'  : {min: -100, max: 100, val: 0},
-                    '#slider-sepia'     : {min: 0, max: 100, val: 0},
-                    '#slider-sharpen'   : {min: 0, max: 100, val: 0}
-                };
+            var SLIDERS = {
+                '#slider-blur'      : {min: -100, max: 100, val: 0},
+                '#slider-brightness': {min: -100, max: 100, val: 0},
+                '#slider-contrast'  : {min: -100, max: 100, val: 0},
+                '#slider-saturation': {min: -100, max: 100, val: 0},
+                '#slider-exposure'  : {min: -100, max: 100, val: 0},
+                '#slider-sepia'     : {min: 0, max: 100, val: 0},
+                '#slider-sharpen'   : {min: 0, max: 100, val: 0}
+            };
 
-                // Load image to canvas
-                modal.find(CANVAS_ID).attr('src', srcImageSelected);
+            // Load image to canvas
+            modal.find(CANVAS_ID).attr('src', srcImageSelected);
 
-                var degrees = 0;
-                var oriImgWidth  = modal.find(CANVAS_ID).width();
-                var oriImgHeight = modal.find(CANVAS_ID).height();
-                var curImgWidth  = oriImgWidth  > CANVAS_WIDTH  ? CANVAS_WIDTH  : oriImgWidth;;
-                var curImgHeight = oriImgHeight > CANVAS_HEIGHT ? CANVAS_HEIGHT : oriImgHeight;;
+            var degrees = 0;
+            var oriImgWidth  = modal.find(CANVAS_ID).width();
+            var oriImgHeight = modal.find(CANVAS_ID).height();
+            var curImgWidth  = oriImgWidth  > CANVAS_WIDTH  ? CANVAS_WIDTH  : oriImgWidth;;
+            var curImgHeight = oriImgHeight > CANVAS_HEIGHT ? CANVAS_HEIGHT : oriImgHeight;;
 
-                // Crop image
-                var cropBox     = modal.find('.crop-box');
-                var event_state = {};
-                var constraint  = isKeepRatio('input[name="crop-keep-ratio"]');
-                var caman = Caman(CANVAS_ID);
+            // Crop image
+            var cropBox     = modal.find('.crop-box');
+            var event_state = {};
+            var constraint  = isKeepRatio('input[name="crop-keep-ratio"]');
+            var caman = Caman(CANVAS_ID);
 
-                // Update image width & height in resize tool
-                modal.find('input[name="resize-w"]').val(oriImgWidth);
-                modal.find('input[name="resize-h"]').val(oriImgHeight);
-                // Set default size of image
-                modal.find(CANVAS_ID).attr('width', `${curImgWidth}px`);
-                modal.find(CANVAS_ID).attr('height', `${curImgHeight}px`);
+            // Update image width & height in resize tool
+            modal.find('input[name="resize-w"]').val(oriImgWidth);
+            modal.find('input[name="resize-h"]').val(oriImgHeight);
+            // Set default size of image
+            modal.find(CANVAS_ID).attr('width', `${curImgWidth}px`);
+            modal.find(CANVAS_ID).attr('height', `${curImgHeight}px`);
 
-                // Set image name
-                modal.find('.modal-header .image-name').text(getFileName(pathImageSelected));
+            // Set image name
+            modal.find('.modal-header .image-name').text(getFileName(pathImageSelected));
 
-                modal.modal('toggle');
+            modal.modal('toggle');
 
-                modal.on('click', '.close', function (e) {
-                    modal.modal('hide');
-                });
+            modal.on('click', '.close', function (e) {
+                modal.modal('hide');
+            });
 
-                modal.on('hide.bs.modal', function (e) {
-                    $(`.${classNameWrap}`).remove();
-                });
+            modal.on('hide.bs.modal', function (e) {
+                $(`.${classNameWrap}`).remove();
+            });
 
-                // Handle image after modal shown
-                modal.on('shown.bs.modal', function (e) {
-                    // Show silder bars (adjust tool)
-                    Object.keys(SLIDERS).forEach(function (identity) {
-                        $(identity).slider({
-                            orientation: "horizontal", // vertical
-                            animate: true,
-                            range: 'min',
-                            min: SLIDERS[identity].min,
-                            max: SLIDERS[identity].max,
-                            value: SLIDERS[identity].val,
-                            step: 1,
-                            change: function (event, ui) {
-                                enableResetBtn();
-                                // Update slider value
-                                $(this).attr('data-val', ui.value);
-                                if (event.originalEvent === undefined) {
-                                    return;
-                                }
-                                applyFilters();
-                                caman.render();
-                            },
-                            slide: function (event, ui) {
-                                // Update slider value in real time when sliding seed
-                                $(this).find('.ui-slider-handle').text(ui.value);
-                            },
-                            create: function (event, ui) {
-                                var value = $(this).slider('value');
-                                // Show default value of sliders
-                                $(this).find('.ui-slider-handle').text(value);
-                                // Set default data of sliders
-                                $(this).attr('data-val', value);
+            // Handle image after modal shown
+            modal.on('shown.bs.modal', function (e) {
+                // Show silder bars (adjust tool)
+                Object.keys(SLIDERS).forEach(function (identity) {
+                    $(identity).slider({
+                        orientation: "horizontal", // vertical
+                        animate: true,
+                        range: 'min',
+                        min: SLIDERS[identity].min,
+                        max: SLIDERS[identity].max,
+                        value: SLIDERS[identity].val,
+                        step: 1,
+                        change: function (event, ui) {
+                            enableResetBtn();
+                            // Update slider value
+                            $(this).attr('data-val', ui.value);
+                            if (event.originalEvent === undefined) {
+                                return;
                             }
-                        });
-                    });
-
-                    // Show image presets
-                    modal.find('.presets-img').each(function (idx, element) {
-                        let idPresetImg = '#' + $(element).attr('id');
-                        let preset = $(element).data('preset');
-                        // Load selected image to presets
-                        $(element).attr('src', srcImageSelected);
-                        // Apply the specified preset filters on each image
-                        Caman(idPresetImg, function() {
-                            if (typeof this[preset] === 'function') {
-                                this[preset]().render();
-                            } else {
-                                console.error(`Preset [${preset}] not exists.`);
-                            }
-                        });
-                        // Apply selected filter to canvas when selecting a preset
-                        $(element).parent().on('click', function (e) {
-                            e.preventDefault();
-                            let preset = $(this).find('canvas').data('preset');
-                            if (typeof caman[preset] === 'function') {
-                                resetFilters();
-                                caman.revert(true);
-                                caman[preset]();
-                                caman.render();
-                            }
-                        });
-                    });
-                });
-
-                // Reset button
-                modal.find('.reset').on('click', function (e) {
-                    e.preventDefault();
-                    caman.reset();
-                    caman.render();
-                    resetFilters();
-                    resetCropBox();
-                });
-
-                // Save button
-                modal.find('.save').on('click', function (e) {
-                    var processingModal;
-                    var isSaved = false;
-                    loadModal('./modals/processing.html', function (_wrapClassName, _modal) {
-                        processingModal = _modal;
-                        // Hide all modals, reload images after click on OK button
-                        processingModal.on('click', '.ok', function () {
-                            // Hide all modals
-                            processingModal.modal('hide');
-                            isSaved && modal.modal('hide');
-                            // Reload image area
-                            let selectedCurrentFolder = $('.folder-selected').attr('data-path');
-                            showImages(selectedCurrentFolder);
-                        });
-                    }, 'wrap-modal-processing', 1052);
-
-                    let blob = base64ToBlob(caman.toBase64());
-                    let folderSelected = basepath(pathImageSelected);
-                    let filename = getFileName(pathImageSelected);
-                    let dataForm = new FormData();
-                    dataForm.append('file', blob, filename);
-                    dataForm.append('folder', folderSelected);
-
-                    $.ajax({
-                        url: '../uploader/do_upload.php',
-                        method: 'POST',
-                        data: dataForm,
-                        dataType: 'json',
-                        contentType: false,
-                        cache: false,
-                        processData: false,
-                        success: function(response, status, jqXHR) {
-                            let bodyModal = processingModal.find('.message');
-                            // Turn off loading spiner
-                            bodyModal.find('.loader').hide();
-                            // Show message
-                            if (response && response.success) {
-                                isSaved = true;
-                                bodyModal.html('<p class="success m-0">Image already saved successfully.</p>');
-                            } else {
-                                bodyModal.html('<p class="error m-0">'+response.error+'</p>');
-                            }
-                            // Show OK button
-                            processingModal.find('.modal-footer').show();
+                            applyFilters();
+                            caman.render();
                         },
-                        error: function (jqXHR, textStatus, errorThrown) {
-                            processingModal.find('.message').find('.loader').hide();
-                            processingModal.find('.message').html('<p class="error m-0">'+jqXHR.responseText+'</p>');
-                            processingModal.find('.modal-footer').show();
+                        slide: function (event, ui) {
+                            // Update slider value in real time when sliding seed
+                            $(this).find('.ui-slider-handle').text(ui.value);
+                        },
+                        create: function (event, ui) {
+                            var value = $(this).slider('value');
+                            // Show default value of sliders
+                            $(this).find('.ui-slider-handle').text(value);
+                            // Set default data of sliders
+                            $(this).attr('data-val', value);
                         }
                     });
                 });
 
-                // Toogle crop box when selecting it
-                modal.find('.container-collapse').on('shown.bs.collapse', function (e) {
-                    let tool = $(this).parent().data('tool');
-                    if (tool == 'crop') {
-                        // Align center for crop box
-                        alignCenterCropBox();
-                        modal.find('.crop-box').show();
-                    } else {
-                        modal.find('.crop-box').hide();
+                // Show image presets
+                modal.find('.presets-img').each(function (idx, element) {
+                    let idPresetImg = '#' + $(element).attr('id');
+                    let preset = $(element).data('preset');
+                    // Load selected image to presets
+                    $(element).attr('src', srcImageSelected);
+                    // Apply the specified preset filters on each image
+                    Caman(idPresetImg, function() {
+                        if (typeof this[preset] === 'function') {
+                            this[preset]().render();
+                        } else {
+                            console.error(`Preset [${preset}] not exists.`);
+                        }
+                    });
+                    // Apply selected filter to canvas when selecting a preset
+                    $(element).parent().on('click', function (e) {
+                        e.preventDefault();
+                        let preset = $(this).find('canvas').data('preset');
+                        if (typeof caman[preset] === 'function') {
+                            resetFilters();
+                            caman.revert(true);
+                            caman[preset]();
+                            caman.render();
+                        }
+                    });
+                });
+            });
+
+            // Reset button
+            modal.find('.reset').on('click', function (e) {
+                e.preventDefault();
+                caman.reset();
+                caman.render();
+                resetFilters();
+                resetCropBox();
+            });
+
+            // Save button
+            modal.find('.save').on('click', function (e) {
+                var processingModal;
+                var isSaved = false;
+                loadModal('./modals/processing.html', function (_wrapClassName, _modal) {
+                    processingModal = _modal;
+                    // Hide all modals, reload images after click on OK button
+                    processingModal.on('click', '.ok', function () {
+                        // Hide all modals
+                        processingModal.modal('hide');
+                        isSaved && modal.modal('hide');
+                        // Reload image area
+                        let selectedCurrentFolder = $('.folder-selected').attr('data-path');
+                        showImages(selectedCurrentFolder);
+                    });
+                }, 'wrap-modal-processing', 1052);
+
+                let blob = base64ToBlob(caman.toBase64());
+                let folderSelected = basepath(pathImageSelected);
+                let filename = getFileName(pathImageSelected);
+                let dataForm = new FormData();
+                dataForm.append('file', blob, filename);
+                dataForm.append('folder', folderSelected);
+
+                $.ajax({
+                    url: '../uploader/do_upload.php',
+                    method: 'POST',
+                    data: dataForm,
+                    dataType: 'json',
+                    contentType: false,
+                    cache: false,
+                    processData: false,
+                    success: function(response, status, jqXHR) {
+                        let bodyModal = processingModal.find('.message');
+                        // Turn off loading spiner
+                        bodyModal.find('.loader').hide();
+                        // Show message
+                        if (response && response.success) {
+                            isSaved = true;
+                            bodyModal.html('<p class="success m-0">Image already saved successfully.</p>');
+                        } else {
+                            bodyModal.html('<p class="error m-0">'+response.error+'</p>');
+                        }
+                        // Show OK button
+                        processingModal.find('.modal-footer').show();
+                    },
+                    error: function (jqXHR, textStatus, errorThrown) {
+                        processingModal.find('.message').find('.loader').hide();
+                        processingModal.find('.message').html('<p class="error m-0">'+jqXHR.responseText+'</p>');
+                        processingModal.find('.modal-footer').show();
                     }
                 });
+            });
 
-                // Resize image
-                modal.on('click', '.apply-resize', function (e) {
-                    // Current image size
-                    curImgWidth  = parseInt(modal.find('input[name="resize-w"]').val());
-                    curImgHeight = parseInt(modal.find('input[name="resize-h"]').val());
-                    // Validate image sizes
-                    if (isNaN(curImgWidth)) {
-                        alert('Image width must be a positive number!');
-                        return;
-                    }
-                    if (isNaN(curImgHeight)) {
-                        alert('Image height must be a positive number!');
-                        return;
-                    }
-                    if (curImgWidth <= 0) {
-                        alert('Image width can not a negative number!');
-                        return;
-                    }
-                    if (curImgHeight <= 0) {
-                        alert('Image height can not a negative number!');
-                        return;
-                    }
-                    if (curImgWidth > oriImgWidth) {
-                        alert('You enter a width value less than ' + oriImgWidth + '!');
-                        return;
-                    }
-                    if (curImgHeight > oriImgHeight) {
-                        alert('You enter a height value less than ' + oriImgHeight + '!');
-                        return;
-                    }
-                    // Resize image
-                    caman.resize({width: curImgWidth, height: curImgHeight});
-                    applyFilters();
-                    caman.render();
-                });
-
-                // When resizing width of image
-                modal.on('change', 'input[name="resize-w"]', function (e) {
-                    if (isKeepRatio('input[name="resize-keep-ratio"]')) {
-                        modal.find('input[name="resize-h"]').val(Number($(this).val()) * ratioImage());
-                    }
-                });
-
-                // When resizing height of image
-                modal.on('change', 'input[name="resize-h"]', function (e) {
-                    if (isKeepRatio('input[name="resize-keep-ratio"]')) {
-                        modal.find('input[name="resize-w"]').val(Number($(this).val()) * ratioImage());
-                    }
-                });
-
-                // Rotating image by clockwise
-                modal.on('click', '.apply-clockwise', function(e) {
-                    degrees += 90;
-                    caman.rotate(90);
-                    applyFilters();
-                    caman.render();
-                });
-
-                // Rotating image by counterclockwise
-                modal.on('click', '.apply-counterclockwise', function(e) {
-                    degrees -= 90;
-                    caman.rotate(-90);
-                    applyFilters();
-                    caman.render();
-                });
-
-                // Crop image
-                modal.on('click', '.apply-crop', function (e) {
-                    var left = cropBox.offset().left - modal.find(CANVAS_ID).offset().left;
-                    var top  = cropBox.offset().top  - modal.find(CANVAS_ID).offset().top;
-                    curImgWidth  = cropBox.width();
-                    curImgHeight = cropBox.height();
-                    // Crop image
-                    caman.crop(curImgWidth, curImgHeight, left, top);
-                    applyFilters();
-                    caman.render();
+            // Toogle crop box when selecting it
+            modal.find('.container-collapse').on('shown.bs.collapse', function (e) {
+                let tool = $(this).parent().data('tool');
+                if (tool == 'crop') {
                     // Align center for crop box
                     alignCenterCropBox();
-                });
-
-                // Keep aspect ratio of image
-                modal.find('input[name="crop-keep-ratio"]').on('change', function () {
-                    constraint  = isKeepRatio('input[name="crop-keep-ratio"]');
-                });
-
-                // Drag crop box
-                cropBox.draggable({
-                    scroll: true,
-                    axis: "xy",
-                    containment: CANVAS_ID,
-                    revert: false,
-                    disable: false,
-                    start: function(event, ui) {
-                        // when starting drag
-                    },
-                    drag: function(event, ui) {
-                        // when dragging
-                    },
-                    stop:function(event, ui) {
-                        // Dragging done
-                    }
-                });
-
-                // Start event for corners (8) of crop box
-                cropBox.on('mousedown touchstart', '.crop-handle', function (e) {
-                    e.preventDefault();
-                    e.stopPropagation();
-
-                    saveEventState(e);
-
-                    // When press and holder a corner of crop box via mouse
-                    modal.on('mousemove touchmove', resizeCropBox);
-                    // When release the mouse
-                    modal.on('mouseup touchend', endResizeCropBox);
-                });
-
-                // Save state of event that it starts pulling corners of crop box
-                function saveEventState(e) {
-                    // Save the initial event details and container state
-                    event_state.container_width  = cropBox.width();
-                    event_state.container_height = cropBox.height();
-                    event_state.container_left   = cropBox.offset().left;
-                    event_state.container_top    = cropBox.offset().top;
-                    event_state.canvas_width     = $(CANVAS_ID).width();
-                    event_state.canvas_height    = $(CANVAS_ID).height();
-                    event_state.canvas_left      = $(CANVAS_ID).offset().left;
-                    event_state.canvas_top       = $(CANVAS_ID).offset().top;
-                    event_state.mouse_x = (e.clientX || e.pageX || e.originalEvent.touches[0].clientX) + $(window).scrollLeft();
-                    event_state.mouse_y = (e.clientY || e.pageY || e.originalEvent.touches[0].clientY) + $(window).scrollTop();
-
-                    // This is a fix for mobile safari
-                    // For some reason it does not allow a direct copy of the touches property
-                    if (typeof e.originalEvent.touches !== 'undefined') {
-                        event_state.touches = [];
-                        $.each(e.originalEvent.touches, function(i, o) {
-                            event_state.touches[i] = {};
-                            event_state.touches[i].clientX = 0 + o.clientX;
-                            event_state.touches[i].clientY = 0 + o.clientY;
-                        });
-                    }
-                    event_state.event = e;
-                }
-
-                // Change size of crop box while pulling its corners
-                function resizeCropBox(e) {
-                    // e.preventDefault();
-
-                    // Turn off draggling crop box when pulling its corners
-                    cropBox.draggable({disable: true});
-
-                    var mouse={},
-                        width,
-                        height,
-                        left,
-                        top,
-                        maxWidth,
-                        maxHeight,
-                        //offset=cropBox.offset(),
-                        $currentCropHandle=$(event_state.event.target);
-                    mouse.x = (e.clientX || e.pageX || e.originalEvent.touches[0].clientX) + $(window).scrollLeft();
-                    mouse.y = (e.clientY || e.pageY || e.originalEvent.touches[0].clientY) + $(window).scrollTop();
-
-                    // Position that crop box differently depending on the corner dragged and constraints
-                    if ($currentCropHandle.hasClass('crop-point-bottom-right')) { // se
-                        width  = mouse.x - event_state.container_left;
-                        height = mouse.y - event_state.container_top;
-                        left   = event_state.container_left;
-                        top    = event_state.container_top;
-                        // If width/height of crop box is over canvas width/height, set it inside canvas
-                        let dxCanvasCropBox = left - event_state.canvas_left;
-                        let dyCanvasCropBox = top  - event_state.canvas_top;
-                        maxWidth  = event_state.canvas_width  - dxCanvasCropBox;
-                        maxHeight = event_state.canvas_height - dyCanvasCropBox;
-                        if (width > maxWidth) {
-                            width = maxWidth;
-                        }
-                        if (height > maxHeight) {
-                            height = maxHeight;
-                        }
-                    } else if ($currentCropHandle.hasClass('crop-point-bottom-left')) { // sw
-                        width  = event_state.container_width - (mouse.x - event_state.container_left);
-                        height = mouse.y - event_state.container_top;
-                        left   = mouse.x;
-                        top    = event_state.container_top;
-                        // If width/height of crop box is over canvas width/height, set it inside canvas
-                        let dxCanvasCropBox = event_state.canvas_left + event_state.canvas_width - event_state.container_width - event_state.container_left;
-                        let dyCanvasCropBox = top  - event_state.canvas_top;
-                        maxWidth  = event_state.canvas_width  - dxCanvasCropBox;
-                        maxHeight = event_state.canvas_height - dyCanvasCropBox;
-                        if (width < 0) {
-                            width = 0;
-                            left = maxWidth + event_state.canvas_left;
-                        } else if (width > maxWidth) {
-                            width = maxWidth;
-                            left  = event_state.canvas_left;
-                        }
-                        if (height > maxHeight) {
-                            height = maxHeight;
-                        }
-                    } else if ($currentCropHandle.hasClass('crop-point-top-left')) { // nw
-                        width  = event_state.container_width  - (mouse.x - event_state.container_left);
-                        height = event_state.container_height - (mouse.y - event_state.container_top);
-                        left   = mouse.x;
-                        top    = mouse.y;
-                        // When press and hold SHIFT
-                        if (constraint || e.shiftKey) {
-                            top = mouse.y - ((width / event_state.container_width * event_state.container_height) - height);
-                        }
-                        // If width/height of crop box is over canvas width/height, set it inside canvas
-                        let dxCanvasCropBox = event_state.canvas_left + event_state.canvas_width  - event_state.container_width  - event_state.container_left;
-                        let dyCanvasCropBox = event_state.canvas_top  + event_state.canvas_height - event_state.container_height - event_state.container_top;
-                        maxWidth  = event_state.canvas_width  - dxCanvasCropBox;
-                        maxHeight = event_state.canvas_height - dyCanvasCropBox;
-                        if (width < 0) {
-                            width = 0;
-                            left = maxWidth + event_state.canvas_left;
-                        } else if (width > maxWidth) {
-                            width = maxWidth;
-                            left  = event_state.canvas_left;
-                        }
-                        if (height < 0) {
-                            height = 0;
-                            top = maxHeight + event_state.canvas_top;
-                        } else if (height > maxHeight) {
-                            height = maxHeight;
-                            top = event_state.canvas_top;
-                        }
-                    } else if ($currentCropHandle.hasClass('crop-point-top-right')) { // ne
-                        width  = mouse.x - event_state.container_left;
-                        height = event_state.container_height - (mouse.y - event_state.container_top);
-                        left   = event_state.container_left;
-                        top    = mouse.y;
-                        // When press and hold SHIFT
-                        if (constraint || e.shiftKey){
-                            top = mouse.y - ((width / event_state.container_width * event_state.container_height) - height);
-                        }
-                        // If width/height of crop box is over canvas width/height, set it inside canvas
-                        let dxCanvasCropBox = left - event_state.canvas_left;
-                        let dyCanvasCropBox = event_state.canvas_top + event_state.canvas_height - event_state.container_top   - event_state.container_height;
-                        maxWidth  = event_state.canvas_width  - dxCanvasCropBox;
-                        maxHeight = event_state.canvas_height - dyCanvasCropBox;
-                        if (width > maxWidth) {
-                            width = maxWidth;
-                        }
-                        if (height < 0) {
-                            height = 0;
-                            top = maxHeight + event_state.canvas_top;
-                        } else if (height > maxHeight) {
-                            height = maxHeight;
-                            top = event_state.canvas_top;
-                        }
-                    } else if ($currentCropHandle.hasClass('crop-point-top')) { // n
-                        width  = event_state.container_width;
-                        height = event_state.container_height - (mouse.y - event_state.container_top);
-                        left   = event_state.container_left;
-                        top    = mouse.y;
-                        // If width/height of crop box is over canvas width/height, set it inside canvas
-                        let dyCanvasCropBox = event_state.canvas_top + event_state.canvas_height - event_state.container_top   - event_state.container_height;
-                        maxHeight = event_state.canvas_height - dyCanvasCropBox;
-                        if (height < 0) {
-                            height = 0
-                            top = maxHeight + event_state.canvas_top;
-                        } else if (height > maxHeight) {
-                            height = maxHeight;
-                            top = event_state.canvas_top;
-                        }
-                    } else if ($currentCropHandle.hasClass('crop-point-bottom')) { // s
-                        width  = event_state.container_width;
-                        height = mouse.y - event_state.container_top;
-                        left   = event_state.container_left;
-                        top    = event_state.container_top;
-                        // If width/height of crop box is over canvas width/height, set it inside canvas
-                        let dyCanvasCropBox = event_state.container_top - event_state.canvas_top;
-                        maxHeight = event_state.canvas_height - dyCanvasCropBox;
-                        if (height > maxHeight) {
-                            height = maxHeight;
-                        }
-                    } else if ($currentCropHandle.hasClass('crop-point-left')) { // w
-                        width  = event_state.container_width - (mouse.x - event_state.container_left);
-                        height = event_state.container_height;
-                        left   = mouse.x;
-                        top    = event_state.container_top;
-                        // If width/height of crop box is over canvas width/height, set it inside canvas
-                        let dxCanvasCropBox = event_state.canvas_left + event_state.canvas_width - event_state.container_left - event_state.container_width;
-                        maxWidth = event_state.canvas_width - dxCanvasCropBox;
-                        if (width < 0) {
-                            width = 0;
-                            left  = event_state.container_left + event_state.container_width;
-                        } else if (width > maxWidth) {
-                            width = maxWidth;
-                            left  = event_state.canvas_left;
-                        }
-                    } else if ($currentCropHandle.hasClass('crop-point-right')) { // e
-                        width  = mouse.x - event_state.container_left;
-                        height = event_state.container_height;
-                        left   = event_state.container_left;
-                        top    = event_state.container_top;
-                        // If width/height of crop box is over canvas width/height, set it inside canvas
-                        let dxCanvasCropBox = event_state.container_left - event_state.canvas_left;
-                        maxWidth = event_state.canvas_width - dxCanvasCropBox;
-                        if (width > maxWidth) {
-                            width = maxWidth;
-                        }
-                    }
-
-                    // Optionally maintain aspect ratio (press and hold SHIFT)
-                    if (constraint || e.shiftKey) {
-                        height = width / event_state.container_width * event_state.container_height;
-                    }
-
-                    // Resize crop box
-                    cropBox.css({width, height, transform: 'translate(0)'});
-                    // Without this, Firefox will not re-calculate the the image dimensions until drag end
-                    cropBox.offset({'left': left, 'top': top});
-                }
-
-                // When finished pulling corners of crop box
-                function endResizeCropBox(e) {
-                    // e.preventDefault();
-                    // Turn off pulling corners of crop box
-                    modal.off('mouseup touchend', endResizeCropBox);
-                    modal.off('mousemove touchmove', resizeCropBox);
-                    // Turn on draggling crop box when finished pulling its corners
-                    cropBox.draggable({disable: false});
-                }
-
-                function alignCenterCropBox(wCanvas, hCanvas) {
-                    let topCropBoxHandleSeed = 4;
-                    wCanvas = wCanvas || $(CANVAS_ID).width();
-                    hCanvas = hCanvas || $(CANVAS_ID).height();
-                    cropBox.css('width', wCanvas);
-                    cropBox.css('height', hCanvas);
-                    cropBox.css('top', `calc(50% - ${hCanvas + topCropBoxHandleSeed}px)`);
-                    cropBox.css('left', `50%`);
-                    cropBox.css('transform', `translate(-50%, -50%)`);
-                }
-
-                function resetCropBox() {
-                    cropBox.css('width', `${CROP_BOX_WIDTH}px`);
-                    cropBox.css('height', `${CROP_BOX_HEIGHT}px`);
-                    cropBox.css('top', `calc(50% - ${CANVAS_HEIGHT}px)`);
-                    cropBox.css('left', `50%`);
-                    cropBox.css('transform', `translate(-50%, -50%)`);
-                }
-
-                function enableResetBtn() {
-                    if (!IS_CHANGED_DATA) {
-                        IS_CHANGED_DATA = true;
-                        modal.find('.reset').removeClass('disabled').show();
-                    }
-                }
-
-                function applyFilters() {
-                    caman.revert(false);
-                    Object.keys(SLIDERS).forEach(function (identity) {
-                        let filter = $(identity).data('type');
-                        let value  = $(identity).attr('data-val');
-                        if (value == 0) {
-                            return;
-                        }
-                        if (typeof caman[filter] === 'function') {
-                            caman[filter](value);
-                        } else {
-                            console.error(`Filter [${filter}] not exists.`);
-                        }
-                    });
-                }
-
-                function resetFilters() {
-                    Object.keys(SLIDERS).forEach(function (identity) {
-                        let silder = $(identity);
-                        let value = SLIDERS[identity].val;
-                        // Resetn the value data, default value and default text of silder
-                        silder.attr('data-val', value);
-                        silder.slider('option', 'value', value);
-                        silder.find('.ui-slider-handle').text(value);
-                    });
-                }
-
-                function isKeepRatio(identity) {
-                    return modal.find(identity).is(':checked');
-                }
-
-                function ratioImage() {
-                    return oriImgHeight / oriImgWidth;
+                    modal.find('.crop-box').show();
+                } else {
+                    modal.find('.crop-box').hide();
                 }
             });
+
+            // Resize image
+            modal.on('click', '.apply-resize', function (e) {
+                // Current image size
+                curImgWidth  = parseInt(modal.find('input[name="resize-w"]').val());
+                curImgHeight = parseInt(modal.find('input[name="resize-h"]').val());
+                // Validate image sizes
+                if (isNaN(curImgWidth)) {
+                    alert('Image width must be a positive number!');
+                    return;
+                }
+                if (isNaN(curImgHeight)) {
+                    alert('Image height must be a positive number!');
+                    return;
+                }
+                if (curImgWidth <= 0) {
+                    alert('Image width can not a negative number!');
+                    return;
+                }
+                if (curImgHeight <= 0) {
+                    alert('Image height can not a negative number!');
+                    return;
+                }
+                if (curImgWidth > oriImgWidth) {
+                    alert('You enter a width value less than ' + oriImgWidth + '!');
+                    return;
+                }
+                if (curImgHeight > oriImgHeight) {
+                    alert('You enter a height value less than ' + oriImgHeight + '!');
+                    return;
+                }
+                // Resize image
+                caman.resize({width: curImgWidth, height: curImgHeight});
+                applyFilters();
+                caman.render();
+            });
+
+            // When resizing width of image
+            modal.on('change', 'input[name="resize-w"]', function (e) {
+                if (isKeepRatio('input[name="resize-keep-ratio"]')) {
+                    modal.find('input[name="resize-h"]').val(Number($(this).val()) * ratioImage());
+                }
+            });
+
+            // When resizing height of image
+            modal.on('change', 'input[name="resize-h"]', function (e) {
+                if (isKeepRatio('input[name="resize-keep-ratio"]')) {
+                    modal.find('input[name="resize-w"]').val(Number($(this).val()) * ratioImage());
+                }
+            });
+
+            // Rotating image by clockwise
+            modal.on('click', '.apply-clockwise', function(e) {
+                degrees += 90;
+                caman.rotate(90);
+                applyFilters();
+                caman.render();
+            });
+
+            // Rotating image by counterclockwise
+            modal.on('click', '.apply-counterclockwise', function(e) {
+                degrees -= 90;
+                caman.rotate(-90);
+                applyFilters();
+                caman.render();
+            });
+
+            // Crop image
+            modal.on('click', '.apply-crop', function (e) {
+                var left = cropBox.offset().left - modal.find(CANVAS_ID).offset().left;
+                var top  = cropBox.offset().top  - modal.find(CANVAS_ID).offset().top;
+                curImgWidth  = cropBox.width();
+                curImgHeight = cropBox.height();
+                // Crop image
+                caman.crop(curImgWidth, curImgHeight, left, top);
+                applyFilters();
+                caman.render();
+                // Align center for crop box
+                alignCenterCropBox();
+            });
+
+            // Keep aspect ratio of image
+            modal.find('input[name="crop-keep-ratio"]').on('change', function () {
+                constraint  = isKeepRatio('input[name="crop-keep-ratio"]');
+            });
+
+            // Drag crop box
+            cropBox.draggable({
+                scroll: true,
+                axis: "xy",
+                containment: CANVAS_ID,
+                revert: false,
+                disable: false,
+                start: function(event, ui) {
+                    // when starting drag
+                },
+                drag: function(event, ui) {
+                    // when dragging
+                },
+                stop:function(event, ui) {
+                    // Dragging done
+                }
+            });
+
+            // Start event for corners (8) of crop box
+            cropBox.on('mousedown touchstart', '.crop-handle', function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+
+                saveEventState(e);
+
+                // When press and holder a corner of crop box via mouse
+                modal.on('mousemove touchmove', resizeCropBox);
+                // When release the mouse
+                modal.on('mouseup touchend', endResizeCropBox);
+            });
+
+            // Save state of event that it starts pulling corners of crop box
+            function saveEventState(e) {
+                // Save the initial event details and container state
+                event_state.container_width  = cropBox.width();
+                event_state.container_height = cropBox.height();
+                event_state.container_left   = cropBox.offset().left;
+                event_state.container_top    = cropBox.offset().top;
+                event_state.canvas_width     = $(CANVAS_ID).width();
+                event_state.canvas_height    = $(CANVAS_ID).height();
+                event_state.canvas_left      = $(CANVAS_ID).offset().left;
+                event_state.canvas_top       = $(CANVAS_ID).offset().top;
+                event_state.mouse_x = (e.clientX || e.pageX || e.originalEvent.touches[0].clientX) + $(window).scrollLeft();
+                event_state.mouse_y = (e.clientY || e.pageY || e.originalEvent.touches[0].clientY) + $(window).scrollTop();
+
+                // This is a fix for mobile safari
+                // For some reason it does not allow a direct copy of the touches property
+                if (typeof e.originalEvent.touches !== 'undefined') {
+                    event_state.touches = [];
+                    $.each(e.originalEvent.touches, function(i, o) {
+                        event_state.touches[i] = {};
+                        event_state.touches[i].clientX = 0 + o.clientX;
+                        event_state.touches[i].clientY = 0 + o.clientY;
+                    });
+                }
+                event_state.event = e;
+            }
+
+            // Change size of crop box while pulling its corners
+            function resizeCropBox(e) {
+                // e.preventDefault();
+
+                // Turn off draggling crop box when pulling its corners
+                cropBox.draggable({disable: true});
+
+                var mouse={},
+                    width,
+                    height,
+                    left,
+                    top,
+                    maxWidth,
+                    maxHeight,
+                    //offset=cropBox.offset(),
+                    $currentCropHandle=$(event_state.event.target);
+                mouse.x = (e.clientX || e.pageX || e.originalEvent.touches[0].clientX) + $(window).scrollLeft();
+                mouse.y = (e.clientY || e.pageY || e.originalEvent.touches[0].clientY) + $(window).scrollTop();
+
+                // Position that crop box differently depending on the corner dragged and constraints
+                if ($currentCropHandle.hasClass('crop-point-bottom-right')) { // se
+                    width  = mouse.x - event_state.container_left;
+                    height = mouse.y - event_state.container_top;
+                    left   = event_state.container_left;
+                    top    = event_state.container_top;
+                    // If width/height of crop box is over canvas width/height, set it inside canvas
+                    let dxCanvasCropBox = left - event_state.canvas_left;
+                    let dyCanvasCropBox = top  - event_state.canvas_top;
+                    maxWidth  = event_state.canvas_width  - dxCanvasCropBox;
+                    maxHeight = event_state.canvas_height - dyCanvasCropBox;
+                    if (width > maxWidth) {
+                        width = maxWidth;
+                    }
+                    if (height > maxHeight) {
+                        height = maxHeight;
+                    }
+                } else if ($currentCropHandle.hasClass('crop-point-bottom-left')) { // sw
+                    width  = event_state.container_width - (mouse.x - event_state.container_left);
+                    height = mouse.y - event_state.container_top;
+                    left   = mouse.x;
+                    top    = event_state.container_top;
+                    // If width/height of crop box is over canvas width/height, set it inside canvas
+                    let dxCanvasCropBox = event_state.canvas_left + event_state.canvas_width - event_state.container_width - event_state.container_left;
+                    let dyCanvasCropBox = top  - event_state.canvas_top;
+                    maxWidth  = event_state.canvas_width  - dxCanvasCropBox;
+                    maxHeight = event_state.canvas_height - dyCanvasCropBox;
+                    if (width < 0) {
+                        width = 0;
+                        left = maxWidth + event_state.canvas_left;
+                    } else if (width > maxWidth) {
+                        width = maxWidth;
+                        left  = event_state.canvas_left;
+                    }
+                    if (height > maxHeight) {
+                        height = maxHeight;
+                    }
+                } else if ($currentCropHandle.hasClass('crop-point-top-left')) { // nw
+                    width  = event_state.container_width  - (mouse.x - event_state.container_left);
+                    height = event_state.container_height - (mouse.y - event_state.container_top);
+                    left   = mouse.x;
+                    top    = mouse.y;
+                    // When press and hold SHIFT
+                    if (constraint || e.shiftKey) {
+                        top = mouse.y - ((width / event_state.container_width * event_state.container_height) - height);
+                    }
+                    // If width/height of crop box is over canvas width/height, set it inside canvas
+                    let dxCanvasCropBox = event_state.canvas_left + event_state.canvas_width  - event_state.container_width  - event_state.container_left;
+                    let dyCanvasCropBox = event_state.canvas_top  + event_state.canvas_height - event_state.container_height - event_state.container_top;
+                    maxWidth  = event_state.canvas_width  - dxCanvasCropBox;
+                    maxHeight = event_state.canvas_height - dyCanvasCropBox;
+                    if (width < 0) {
+                        width = 0;
+                        left = maxWidth + event_state.canvas_left;
+                    } else if (width > maxWidth) {
+                        width = maxWidth;
+                        left  = event_state.canvas_left;
+                    }
+                    if (height < 0) {
+                        height = 0;
+                        top = maxHeight + event_state.canvas_top;
+                    } else if (height > maxHeight) {
+                        height = maxHeight;
+                        top = event_state.canvas_top;
+                    }
+                } else if ($currentCropHandle.hasClass('crop-point-top-right')) { // ne
+                    width  = mouse.x - event_state.container_left;
+                    height = event_state.container_height - (mouse.y - event_state.container_top);
+                    left   = event_state.container_left;
+                    top    = mouse.y;
+                    // When press and hold SHIFT
+                    if (constraint || e.shiftKey){
+                        top = mouse.y - ((width / event_state.container_width * event_state.container_height) - height);
+                    }
+                    // If width/height of crop box is over canvas width/height, set it inside canvas
+                    let dxCanvasCropBox = left - event_state.canvas_left;
+                    let dyCanvasCropBox = event_state.canvas_top + event_state.canvas_height - event_state.container_top   - event_state.container_height;
+                    maxWidth  = event_state.canvas_width  - dxCanvasCropBox;
+                    maxHeight = event_state.canvas_height - dyCanvasCropBox;
+                    if (width > maxWidth) {
+                        width = maxWidth;
+                    }
+                    if (height < 0) {
+                        height = 0;
+                        top = maxHeight + event_state.canvas_top;
+                    } else if (height > maxHeight) {
+                        height = maxHeight;
+                        top = event_state.canvas_top;
+                    }
+                } else if ($currentCropHandle.hasClass('crop-point-top')) { // n
+                    width  = event_state.container_width;
+                    height = event_state.container_height - (mouse.y - event_state.container_top);
+                    left   = event_state.container_left;
+                    top    = mouse.y;
+                    // If width/height of crop box is over canvas width/height, set it inside canvas
+                    let dyCanvasCropBox = event_state.canvas_top + event_state.canvas_height - event_state.container_top   - event_state.container_height;
+                    maxHeight = event_state.canvas_height - dyCanvasCropBox;
+                    if (height < 0) {
+                        height = 0
+                        top = maxHeight + event_state.canvas_top;
+                    } else if (height > maxHeight) {
+                        height = maxHeight;
+                        top = event_state.canvas_top;
+                    }
+                } else if ($currentCropHandle.hasClass('crop-point-bottom')) { // s
+                    width  = event_state.container_width;
+                    height = mouse.y - event_state.container_top;
+                    left   = event_state.container_left;
+                    top    = event_state.container_top;
+                    // If width/height of crop box is over canvas width/height, set it inside canvas
+                    let dyCanvasCropBox = event_state.container_top - event_state.canvas_top;
+                    maxHeight = event_state.canvas_height - dyCanvasCropBox;
+                    if (height > maxHeight) {
+                        height = maxHeight;
+                    }
+                } else if ($currentCropHandle.hasClass('crop-point-left')) { // w
+                    width  = event_state.container_width - (mouse.x - event_state.container_left);
+                    height = event_state.container_height;
+                    left   = mouse.x;
+                    top    = event_state.container_top;
+                    // If width/height of crop box is over canvas width/height, set it inside canvas
+                    let dxCanvasCropBox = event_state.canvas_left + event_state.canvas_width - event_state.container_left - event_state.container_width;
+                    maxWidth = event_state.canvas_width - dxCanvasCropBox;
+                    if (width < 0) {
+                        width = 0;
+                        left  = event_state.container_left + event_state.container_width;
+                    } else if (width > maxWidth) {
+                        width = maxWidth;
+                        left  = event_state.canvas_left;
+                    }
+                } else if ($currentCropHandle.hasClass('crop-point-right')) { // e
+                    width  = mouse.x - event_state.container_left;
+                    height = event_state.container_height;
+                    left   = event_state.container_left;
+                    top    = event_state.container_top;
+                    // If width/height of crop box is over canvas width/height, set it inside canvas
+                    let dxCanvasCropBox = event_state.container_left - event_state.canvas_left;
+                    maxWidth = event_state.canvas_width - dxCanvasCropBox;
+                    if (width > maxWidth) {
+                        width = maxWidth;
+                    }
+                }
+
+                // Optionally maintain aspect ratio (press and hold SHIFT)
+                if (constraint || e.shiftKey) {
+                    height = width / event_state.container_width * event_state.container_height;
+                }
+
+                // Resize crop box
+                cropBox.css({width, height, transform: 'translate(0)'});
+                // Without this, Firefox will not re-calculate the the image dimensions until drag end
+                cropBox.offset({'left': left, 'top': top});
+            }
+
+            // When finished pulling corners of crop box
+            function endResizeCropBox(e) {
+                // e.preventDefault();
+                // Turn off pulling corners of crop box
+                modal.off('mouseup touchend', endResizeCropBox);
+                modal.off('mousemove touchmove', resizeCropBox);
+                // Turn on draggling crop box when finished pulling its corners
+                cropBox.draggable({disable: false});
+            }
+
+            function alignCenterCropBox(wCanvas, hCanvas) {
+                let topCropBoxHandleSeed = 4;
+                wCanvas = wCanvas || $(CANVAS_ID).width();
+                hCanvas = hCanvas || $(CANVAS_ID).height();
+                cropBox.css('width', wCanvas);
+                cropBox.css('height', hCanvas);
+                cropBox.css('top', `calc(50% - ${hCanvas + topCropBoxHandleSeed}px)`);
+                cropBox.css('left', `50%`);
+                cropBox.css('transform', `translate(-50%, -50%)`);
+            }
+
+            function resetCropBox() {
+                cropBox.css('width', `${CROP_BOX_WIDTH}px`);
+                cropBox.css('height', `${CROP_BOX_HEIGHT}px`);
+                cropBox.css('top', `calc(50% - ${CANVAS_HEIGHT}px)`);
+                cropBox.css('left', `50%`);
+                cropBox.css('transform', `translate(-50%, -50%)`);
+            }
+
+            function enableResetBtn() {
+                if (!IS_CHANGED_DATA) {
+                    IS_CHANGED_DATA = true;
+                    modal.find('.reset').removeClass('disabled').show();
+                }
+            }
+
+            function applyFilters() {
+                caman.revert(false);
+                Object.keys(SLIDERS).forEach(function (identity) {
+                    let filter = $(identity).data('type');
+                    let value  = $(identity).attr('data-val');
+                    if (value == 0) {
+                        return;
+                    }
+                    if (typeof caman[filter] === 'function') {
+                        caman[filter](value);
+                    } else {
+                        console.error(`Filter [${filter}] not exists.`);
+                    }
+                });
+            }
+
+            function resetFilters() {
+                Object.keys(SLIDERS).forEach(function (identity) {
+                    let silder = $(identity);
+                    let value = SLIDERS[identity].val;
+                    // Resetn the value data, default value and default text of silder
+                    silder.attr('data-val', value);
+                    silder.slider('option', 'value', value);
+                    silder.find('.ui-slider-handle').text(value);
+                });
+            }
+
+            function isKeepRatio(identity) {
+                return modal.find(identity).is(':checked');
+            }
+
+            function ratioImage() {
+                return oriImgHeight / oriImgWidth;
+            }
         });
     }
 
@@ -1668,12 +1631,32 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
             filesize: 2,
             date: 3
         },
+        alwaysVisibleColumns: [
+            'filename'
+        ],
+        options: {
+            // stateSave: true,
+            autoWidth: false,
+            paging: false,
+            searching: false,
+            info: false,
+        },
+        getColumnByIndex(index) {
+            let columns = Object.keys(this.indexesColumn);
+            for (let i=0; i < columns.length; i++) {
+                if (this.indexesColumn[columns[i]] === index) {
+                    return columns[i];
+                }
+            }
+            return false;
+        },
         columnDefs() {
             return [
                 {
                     targets: this.indexesColumn.icon,
                     orderable: false,
                     title: undefined,
+                    width: '10px',
                     render(data, type, row, meta) {
                         return `
                             <i class="bi bi-image-fill" style="font-size:25px;"></i>
@@ -1687,7 +1670,7 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
                     visible: true,
                     render(data, type, row, meta) {
                         return `
-                            ${row.filename}
+                            <div class="target-highlight">${row.filename}</div>
                         `;
                     }
                 },
@@ -1723,13 +1706,6 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
                 })
             }
             return this;
-        },
-        options: {
-            // stateSave: true,
-            autoWidth: false,
-            paging: false,
-            searching: false,
-            info: false,
         },
         init: function (identity) {
             this.identity  = identity;
@@ -1777,20 +1753,29 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
         },
         toggleColumns: function () {
             if (this.datatable) {
-                let indexesColumn = this.indexesColumn;
+                let self = this;
                 let columnDefs = this.columnDefs().map(function (row) {
-                    Object.keys(indexesColumn).forEach(function(column) {
-                        if (indexesColumn[column] === row.targets) {
-                            if (ACTIVE_SETTINGS.hasOwnProperty(column)) {
-                                row.visible = ACTIVE_SETTINGS[column];
-                            }
-                        }
-                    });
+                    let column = THEME.getColumnByIndex(row.targets);
+                    if (ACTIVE_SETTINGS.hasOwnProperty(column)) {
+                        // Default column is always visible as File Name
+                        row.visible = self.alwaysVisibleColumns.indexOf(column) !== -1 ? true : ACTIVE_SETTINGS[column];
+                    }
                     return row;
                 });
                 this.addOption({columnDefs});
                 this.destroy();
                 this.datatable = $(this.identity).DataTable(this.options).draw();
+            }
+        },
+        toggleFileNameSizeDate: function (targetSetting) {
+            if (targetSetting) {
+                let toggle = ACTIVE_SETTINGS[targetSetting] ? 'show' : 'hide';
+                $('.images').find(`.${targetSetting}`)[toggle]();
+            } else {
+                ['filename', 'filesize', 'date'].forEach(function (target) {
+                    let toggle = ACTIVE_SETTINGS[target] ? 'show' : 'hide';
+                    $('.images').find(`.${target}`)[toggle]();
+                });
             }
         }
     };
@@ -1851,8 +1836,13 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
 
         // Click on each image
         $(document).on('click', '.images .wrap-image', function() {
-            $(this).closest('.images').find('.wrap-image').removeClass('image-selected');
-            $(this).addClass('image-selected');
+            if (ACTIVE_SETTINGS.view == 'list') {
+                $(this).closest('.images').find('.target-highlight').removeClass('image-selected');
+                $(this).find('.target-highlight').addClass('image-selected');
+            } else {
+                $(this).closest('.images').find('.wrap-image').removeClass('image-selected');
+                $(this).addClass('image-selected');
+            }
         });
 
         $('#uploadfile').on('change', function() {
@@ -1999,24 +1989,25 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
                     let type    = $(this).attr('type');
                     let group   = $(this).attr('data-group');
                     let value   = type == 'checkbox' ? $(this).is(':checked') : $(this).val();
+
                     ACTIVE_SETTINGS[setting] = value;
 
                     // Toggle filename, filesize and date
                     if (group == 'fds-setting') {
-                        if (ACTIVE_SETTINGS[setting]) {
-                            $('.images').find(`.${setting}`).show();
-                        } else {
-                            $('.images').find(`.${setting}`).hide();
-                        }
+                        THEME.toggleFileNameSizeDate(setting);
+                        // Toggle filename, filesize and date on datatable
                         if (ACTIVE_SETTINGS.view == 'list') {
-                            // Toggle filename, filesize and date on datatable
                             THEME.toggleColumns();
                         }
                     }
 
                     // Change layput when sortby & orderby
-                    if (['sortby', 'orderby'].indexOf(setting) !== -1) {
-                        showImages();
+                    if (setting == 'sortby' || setting == 'orderby') {
+                        if (ACTIVE_SETTINGS.view == 'list') {
+                            THEME.datatable.order([THEME.indexesColumn[ACTIVE_SETTINGS.sortby], ACTIVE_SETTINGS.orderby]).draw();
+                        } else {
+                            showImages();
+                        }
                     }
 
                     // Change layout when thumbsize changed
@@ -2052,6 +2043,29 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
 
         $('#datatable').on('dblclick', 'tbody tr', function (e) {
             //TODO
+        });
+
+        // Change sortby and orderby in settings modal when sorting header of datatable changed
+        $(document).on('order.dt', '#datatable', function () {
+            // Only handling when it is list type
+            if (!THEME.datatable || ACTIVE_SETTINGS.view != 'list') {
+                return;
+            }
+            // Current column for sorting
+            let order = THEME.datatable.order();
+            if (order.length > 0) {
+                let indexColumn = order[0][0];
+                let orderby = order[0][1];
+                let columnSelected = THEME.getColumnByIndex(indexColumn);
+
+                // Update sortby and orderby
+                ACTIVE_SETTINGS.sortby  = columnSelected;
+                ACTIVE_SETTINGS.orderby = orderby.toLowerCase();
+
+                // Update SortBy and OrderBy in settings modal
+                $(`select[data-setting="sortby"] option[value="${columnSelected}"]`).prop('selected', true);
+                $(`input[data-setting="orderby"][value="${ACTIVE_SETTINGS.orderby}"]`).prop('checked', true);
+            }
         });
 
         // window.opener.CKEDITOR.instances.editor.openDialog('mypluginDialog');
