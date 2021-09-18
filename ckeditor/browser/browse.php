@@ -285,20 +285,7 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
     <div id="context-menu-folder" class="context-menu"></div>
     <!-- /Context Menu -->
 
-    <div id="context-copy-move" class="context-menu">
-        <ul class="context-menu__items">
-            <li class="context-menu__item">
-                <a class="context-menu__link">
-                    <label><i class="bi bi-files"></i></label><span>&nbsp;Copy Here</span>
-                </a>
-            </li>
-            <li class="context-menu__item">
-                <a class="context-menu__link">
-                    <label><i class="bi bi-box-arrow-right"></i></label><span>&nbsp;Move Here</span>
-                </a>
-            </li>
-        </ul>
-    </div>
+    <div id="context-copy-move" class="context-menu"></div>
 
 <script>
     function showImages(path) {
@@ -445,22 +432,46 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
                         drop(e, ui) {
                             // Turn off highlight folder
                             $(this).css('background', 'transparent');
-                            let offset = $(this).offset();
-                            $('#context-copy-move').offset({
-                                top: offset.top + $(this).height(),
-                                left: offset.left + $(this).width() / 2
-                            });
-                            // Turn on menu context
-                            $('#context-copy-move').addClass('context-menu--active');
-                            // Turn off menu context
-                            document.addEventListener('click', function (e) {
-                                $('#context-copy-move').removeAttr('style');
-                                $('#context-copy-move').removeClass('context-menu--active');
-                            });
+                            // let offset = $(this).offset();
+                            // $('#context-copy-move').offset({
+                            //     top: offset.top + $(this).height(),
+                            //     left: offset.left + $(this).width() / 2
+                            // });
+                            // // Turn on menu context
+                            // $('#context-copy-move').addClass('context-menu--active');
+                            // // Turn off menu context
+                            // document.addEventListener('click', function (e) {
+                            //     $('#context-copy-move').removeAttr('style');
+                            //     $('#context-copy-move').removeClass('context-menu--active');
+                            // });
 
-                            // MenuContext.buildMenuItems({
-
-                            // }, 'copymove');
+                            ContextMenu.show({
+                                selectorContext: '#context-copy-move',
+                                mouseEvent: e,
+                                types: {
+                                    copymove: [
+                                        {
+                                            id: 'copy',
+                                            icon: '<i class="bi bi-files"></i>',
+                                            label: 'Copy Here'
+                                        },
+                                        {
+                                            id: 'move',
+                                            icon: '<i class="bi bi-box-arrow-right"></i>',
+                                            label: 'Move Here'
+                                        },
+                                    ]
+                                },
+                                activations: {},
+                                actions: {
+                                    'copymove.copy': function (elementTarget, event) {
+                                        console.log('copy')
+                                    },
+                                    'copymove.move': function (elementTarget, event) {
+                                        console.log('move')
+                                    },
+                                }
+                            }, 'copymove', this);
                         }
                     });
                 }

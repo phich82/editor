@@ -140,12 +140,14 @@ var ContextMenu = {
                         !itemDisabled && li.addEventListener(itemConfig.event || 'click', function (e) {
                             let keyAction = menuItemType + '.' + itemConfig.id;
                             if (configs.actions.hasOwnProperty(keyAction)) {
+                                // Key: actions.{<type>.<id>}
                                 let action = configs.actions[keyAction];
                                 if (typeof action === 'function') {
                                     action(element, e);
                                     toggleMenuOff();
                                 }
                             } else if (typeof itemConfig.action === 'function') {
+                                // Key: types.{type}.*.action
                                 itemConfig.action(element, e);
                                 toggleMenuOff();
                             }
@@ -268,7 +270,7 @@ var ContextMenu = {
         }
 
         /**
-         * Listens for keyup events.
+         * Listens for keyup events
          */
         function keyupListener() {
             window.onkeyup = function(e) {
@@ -290,96 +292,142 @@ var ContextMenu = {
             }
         }
     },
-    buildMenuItems(configs, menuItemType) {
-        let contextmenu = document.querySelector(configs.selectorContext);
-        let contextMenuItemsClassName = 'context-menu__items';
-        let contextMenuItemClassName  = 'context-menu__item';
-        let contextMenuLinkClassName  = 'context-menu__link';
-        let contextMenuLinkDisableClassName = 'context-menu__link-disable';
-        let contextActiveClassName = 'context-menu--active';
-        let contextMenuActiveClass = configs.contextActiveClassName;
+    show(configs, menuItemType, element) {
+        // Mix configs
+        if (typeof configs === 'object') {
+            configs = Object.assign({}, {
+                contextActiveClassName: 'context-menu--active',
+                keysTurnOffContextMenu: [],
+            }, configs);
+        }
+        var self = this;
+        var contextmenu = document.querySelector(configs.selectorContext);
+        var contextMenuItemsClassName = 'context-menu__items';
+        var contextMenuItemClassName  = 'context-menu__item';
+        var contextMenuLinkClassName  = 'context-menu__link';
+        var contextMenuLinkDisableClassName = 'context-menu__link-disable';
+        var contextMenuActiveClass = configs.contextActiveClassName;
 
+        this.onReady(function() {
+            // Build menu items based its type
+            let itemsConfig = configs.types[menuItemType];
+            let ul = document.createElement('ul');
+
+            ul.classList.add(contextMenuItemsClassName)
+
+            itemsConfig.forEach(function(itemConfig) {
+                let li    = document.createElement('li');
+                let a     = document.createElement('a');
+                let icon  = document.createElement('label');
+                let label = document.createElement('span');
+
+                // Check menu item disabled
+                let itemDisabled = typeof itemConfig.disabled === 'function'
+                    ? itemConfig.disabled(element)
+                    : false;
+
+                li.classList.add(contextMenuItemClassName);
+                a.classList.add(contextMenuLinkClassName);
+
+                icon.innerHTML  = itemConfig.icon  || '';
+                label.innerHTML = '&nbsp;' + (itemConfig.label || '');
+
+                if (itemDisabled) {
+                    a.classList.add(contextMenuLinkDisableClassName);
+                } else {
+                    a.classList.remove(contextMenuLinkDisableClassName);
+                }
+
+                a.appendChild(icon);
+                a.appendChild(label);
+                li.appendChild(a);
+
+                // Add event to each menu item on context menu
+                !itemDisabled && li.addEventListener(itemConfig.event || 'click', function (e) {
+                    let keyAction = menuItemType + '.' + itemConfig.id;
+                    if (configs.actions.hasOwnProperty(keyAction)) {
+                        let action = configs.actions[keyAction];
+                        // Key: actions.{<type>.<id>}
+                        if (typeof action === 'function') {
+                            action(element, e);
+                            toggleMenuOff();
+                        }
+                    } else if (typeof itemConfig.action === 'function') {
+                        // Key: types.{type}.*.action
+                        itemConfig.action(element, e);
+                        toggleMenuOff();
+                    }
+                });
+                // Add menu item to context menu
+                ul.appendChild(li);
+            });
+
+            // Turn off menu context
+            document.addEventListener('click', function (e) {
+                toggleMenuOff();
+            });
+
+            // Turn context menu off when press ESC key
+            keyupListener();
+
+            // Add menu items to context menu
+            contextmenu.innerHTML = '';
+            contextmenu.appendChild(ul);
+            // Show context menu
+            contextmenu.style.top  = (element.offsetTop  + element.offsetHeight) + 'px';// self.mouseY(configs.mouseEvent || window.event) + 'px';
+            contextmenu.style.left = (element.offsetLeft + element.offsetWidth / 2) + 'px';// self.mouseX(configs.mouseEvent || window.event) + 'px';
+            toggleMenuOn();
+        });
+
+        /**
+         * Hide contextmenu
+         */
         function toggleMenuOff() {
             contextmenu.classList.remove(contextMenuActiveClass);
         }
 
+        /**
+         * Show contextmenu
+         */
         function toggleMenuOn() {
             contextmenu.classList.add(contextMenuActiveClass);
         }
 
-        // Build menu items based its type
-        let itemsConfig = configs.types[menuItemType];
-        let ul = document.createElement('ul');
+        /**
+         * Listens for keyup events
+         */
+        function keyupListener() {
+            window.onkeyup = function(e) {
+                let EXIT_KEYBOARD = 27; // ESC key
+                let keys = [EXIT_KEYBOARD];
+                let keysMore = configs.keysTurnOffContextMenu || null;
 
-        ul.classList.add(contextMenuItemsClassName)
+                // Add more keyboards for turn context menu off
+                if (Array.isArray(keysMore) && keysMore.length > 0) {
+                    keys = keys.concat(keysMore.filter(function(key) {
+                        return keys.indexOf(key) === -1;
+                    }));
+                }
 
-        itemsConfig.forEach(function(itemConfig) {
-            let li    = document.createElement('li');
-            let a     = document.createElement('a');
-            let icon  = document.createElement('label');
-            let label = document.createElement('span');
-
-            li.classList.add(contextMenuItemClassName);
-            a.classList.add(contextMenuLinkClassName);
-
-            icon.innerHTML  = itemConfig.icon  || '';
-            label.innerHTML = '&nbsp;' + (itemConfig.label || '');
-
-            a.appendChild(icon);
-            a.appendChild(label);
-            li.appendChild(a);
-
-            // Add event to each menu item on context menu
-            !itemDisabled && li.addEventListener(itemConfig.event || 'click', function (e) {
-                let keyAction = menuItemType + '.' + itemConfig.id;
-                if (configs.actions.hasOwnProperty(keyAction)) {
-                    let action = configs.actions[keyAction];
-                    if (typeof action === 'function') {
-                        action(element, e);
-                        toggleMenuOff();
-                    }
-                } else if (typeof itemConfig.action === 'function') {
-                    itemConfig.action(element, e);
+                // Closing contextmenu when press ESC key
+                if (keys.indexOf(e.keyCode) !== -1) {
                     toggleMenuOff();
                 }
-            });
-            // Add menu item to context menu
-            ul.appendChild(li);
-        });
-
-        // Turn off menu context
-        document.addEventListener('click', function (e) {
-            contextmenu.removeAttribute('style');
-            toggleMenuOff();
-        })
-
-        // Add menu items to context menu
-        contextmenu.innerHTML = '';
-        contextmenu.appendChild(ul);
-        // Show context menu
-        contextmenu.style.top =  mouseY(window.event) + 'px';
-        contextmenu.style.left = mouseX(window.event) + 'px';
-        toggleMenuOn();
+            }
+        }
+    },
+    onReady(fn) {
+        var d=document;(d.readyState=='loading')?d.addEventListener('DOMContentLoaded',fn):fn();
     },
     mouseX(e) {
         if (e.pageY) {
-            return e.pageY;
-        }
-        if (e.clientY) {
-            return e.clientY + (document.documentElement.scrollTop
-                ? document.documentElement.scrollTop
-                : document.body.scrollTop);
+            return e.pageY || e.clientY + (document.documentElement.scrollTop || document.body.scrollTop || 0);
         }
         return null;
     },
     mouseY(e) {
-        if (e.pageY) {
-            return e.pageY;
-        }
-        if (e.clientY) {
-            return e.clientY + (document.documentElement.scrollTop
-                ? document.documentElement.scrollTop
-                : document.body.scrollTop);
+        if (e.pageY || e.clientY) {
+            return e.pageY || e.clientY + (document.documentElement.scrollTop || document.body.scrollTop || 0);
         }
         return null;
     }
