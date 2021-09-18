@@ -432,19 +432,17 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
                         drop(e, ui) {
                             // Turn off highlight folder
                             $(this).css('background', 'transparent');
-                            // let offset = $(this).offset();
-                            // $('#context-copy-move').offset({
-                            //     top: offset.top + $(this).height(),
-                            //     left: offset.left + $(this).width() / 2
-                            // });
-                            // // Turn on menu context
-                            // $('#context-copy-move').addClass('context-menu--active');
-                            // // Turn off menu context
-                            // document.addEventListener('click', function (e) {
-                            //     $('#context-copy-move').removeAttr('style');
-                            //     $('#context-copy-move').removeClass('context-menu--active');
-                            // });
 
+                            var wrapImage = $(ui.helper).closest('.wrap-image');
+                            var pathFrom = wrapImage.attr('data-path');
+                            var from = basepath(pathFrom);
+                            var to = $(this).attr('data-path');
+                            var file = getFileName(pathFrom);
+                            console.log({from, to, file})
+
+                            return;
+
+                            // Show contextmenu
                             ContextMenu.show({
                                 selectorContext: '#context-copy-move',
                                 mouseEvent: e,
@@ -465,10 +463,27 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
                                 activations: {},
                                 actions: {
                                     'copymove.copy': function (elementTarget, event) {
-                                        console.log('copy')
+                                        console.log('copy => ', elementTarget);
+                                        $.ajax({
+                                            url: '../uploader/do_file.php',
+                                            method: 'POST',
+                                            data: {
+                                                action: 'copy',
+                                                file,
+                                                from,
+                                                to,
+                                            },
+                                            dataType: 'json',
+                                            success: function (response) {
+
+                                            },
+                                            error: function (jqXHR, textStatus, errorThrown) {
+                                                console.log('error =>', jqXHR, textStatus, errorThrown);
+                                            }
+                                        });
                                     },
                                     'copymove.move': function (elementTarget, event) {
-                                        console.log('move')
+                                        console.log('move => ', elementTarget)
                                     },
                                 }
                             }, 'copymove', this);

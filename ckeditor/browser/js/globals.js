@@ -79,7 +79,7 @@ function getFileName(path) {
     return path.split('/').pop();
 }
 
-// Get base path  from path
+// Get base path from path
 function basepath(path) {
     if (!path) {
         return false;
