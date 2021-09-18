@@ -235,6 +235,215 @@ if ($action == 'delete') {
     ]);
 }
 
+// Copy file
+if ($action == 'copy') {
+    // Validation
+    if (!isset($_POST['from'])) {
+        return responseJson([
+            'success' => false,
+            'error'   => 'Missing `from` key.',
+            'data'    => null,
+        ]);
+    }
+    if (empty($_POST['from'])) {
+        return responseJson([
+            'success' => false,
+            'error'   => 'From value is an empty.',
+            'data'    => null,
+        ]);
+    }
+    if (!isset($_POST['to'])) {
+        return responseJson([
+            'success' => false,
+            'error'   => 'Missing `to` key.',
+            'data'    => null,
+        ]);
+    }
+    if (empty($_POST['to'])) {
+        return responseJson([
+            'success' => false,
+            'error'   => 'To is an empty.',
+            'data'    => null,
+        ]);
+    }
+    if (!isset($_POST['file'])) {
+        return responseJson([
+            'success' => false,
+            'error'   => 'Missing `file` key.',
+            'data'    => null,
+        ]);
+    }
+    if (empty($_POST['file'])) {
+        return responseJson([
+            'success' => false,
+            'error'   => 'File is an empty.',
+            'data'    => null,
+        ]);
+    }
+
+    $file = trim($_POST['file'], '\\/');
+    $from = trim($_POST['from'], '\\/');
+    $to   = trim($_POST['to'], '\\/');
+    $fromFolder = STORAGE_PATH.DIRECTORY_SEPARATOR.$from;
+    $toFolder   = STORAGE_PATH.DIRECTORY_SEPARATOR.$to;
+    $fromFilePath = $fromFolder.DIRECTORY_SEPARATOR.$file;
+    $toFilePath   = $toFolder.DIRECTORY_SEPARATOR.$file;
+
+    if (!is_dir($fromFolder) && !file_exists($fromFolder)) {
+        return responseJson([
+            'success' => false,
+            'error'   => "Folder [$from] not exists.",
+            'data'    => null,
+        ]);
+    }
+    if (!is_dir($toFolder) && !file_exists($toFolder)) {
+        return responseJson([
+            'success' => false,
+            'error'   => "Folder [$to] not exists.",
+            'data'    => null,
+        ]);
+    }
+    if (!file_exists($fromFilePath)) {
+        return responseJson([
+            'success' => false,
+            'error'   => "File [$file] not exists.",
+            'data'    => null,
+        ]);
+    }
+    // If the file existed in desination folder, append postfix to it
+    if (file_exists($toFilePath)) {
+        $parts = explode('.', $file);
+        $newfile = $parts[0].'_'.getUniqueString().'.'.$parts[1];
+        $toNewFilePath = $toFolder.DIRECTORY_SEPARATOR.$newfile;
+        if (copy($fromFilePath, $toNewFilePath)) {
+            return responseJson([
+                'success' => true,
+                'data' => getFileInfo($toNewFilePath),
+            ]);
+        }
+        return responseJson([
+            'success' => false,
+            'error'   => 'Could not copy the file.',
+            'data'    => null,
+        ]);
+    }
+    if (copy($fromFilePath, $toFilePath)) {
+        return responseJson([
+            'success' => true,
+            'data'    => getFileInfo($toFolder.DIRECTORY_SEPARATOR.$file),
+        ]);
+    }
+    return responseJson([
+        'success' => false,
+        'error'   => 'Could not copy the file.',
+        'data'    => null
+    ]);
+}
+
+// Move file
+if ($action == 'move') {
+    // Validation
+    if (!isset($_POST['from'])) {
+        return responseJson([
+            'success' => false,
+            'error'   => 'Missing `from` key.',
+            'data'    => null,
+        ]);
+    }
+    if (empty($_POST['from'])) {
+        return responseJson([
+            'success' => false,
+            'error'   => 'From value is an empty.',
+            'data'    => null,
+        ]);
+    }
+    if (!isset($_POST['to'])) {
+        return responseJson([
+            'success' => false,
+            'error'   => 'Missing `to` key.',
+            'data'    => null,
+        ]);
+    }
+    if (empty($_POST['to'])) {
+        return responseJson([
+            'success' => false,
+            'error' => 'To is an empty.',
+            'data' => null,
+        ]);
+    }
+    if (!isset($_POST['file'])) {
+        return responseJson([
+            'success' => false,
+            'error'   => 'Missing `file` key.',
+            'data'    => null,
+        ]);
+    }
+    if (empty($_POST['file'])) {
+        return responseJson([
+            'success' => false,
+            'error' => 'File is an empty.',
+            'data' => null,
+        ]);
+    }
+
+    $file = trim($_POST['file'], '\\/');
+    $from = trim($_POST['from'], '\\/');
+    $to   = trim($_POST['to'], '\\/');
+    $fromFolder = STORAGE_PATH.DIRECTORY_SEPARATOR.$from;
+    $toFolder   = STORAGE_PATH.DIRECTORY_SEPARATOR.$to;
+    $fromFilePath = $fromFolder.DIRECTORY_SEPARATOR.$file;
+    $toFilePath   = $toFolder.DIRECTORY_SEPARATOR.$file;
+
+    if (!is_dir($fromFolder) && !file_exists($fromFolder)) {
+        return responseJson([
+            'success' => false,
+            'error'   => "Folder [$from] not exists.",
+            'data'    => null,
+        ]);
+    }
+    if (!is_dir($toFolder) && !file_exists($toFolder)) {
+        return responseJson([
+            'success' => false,
+            'error'   => "Folder [$to] not exists.",
+            'data'    => null,
+        ]);
+    }
+    if (!file_exists($fromFilePath)) {
+        return responseJson([
+            'success' => false,
+            'error'   => "File [$file] not exists.",
+            'data'    => null,
+        ]);
+    }
+    // If the file existed in desination folder, append postfix to it
+    if (file_exists($toFilePath)) {
+        $parts = explode('.', $file);
+        $newfile = $parts[0].'_'.getUniqueString().'.'.$parts[1];
+        $fromNewFilePath = $fromFolder.DIRECTORY_SEPARATOR.$newfile;
+        if (move_file($fromNewFilePath, $toFolder)) {
+            return responseJson([
+                'success' => true,
+                'data'    => getFileInfo($toFolder.DIRECTORY_SEPARATOR.$toNewFilePath),
+            ]);
+        }
+        return responseJson([
+            'success' => false,
+            'error'   => 'Could not move the file.',
+            'data'    => null,
+        ]);
+    }
+    if (move_file($fromFilePath, $toFolder)) {
+        return responseJson([
+            'success' => true,
+            'data'    => getFileInfo($toFolder.DIRECTORY_SEPARATOR.$file),
+        ]);
+    }
+    return responseJson([
+        'success' => false,
+        'data'    => 'Could not move the file.'
+    ]);
+}
+
 return responseJson([
     'success' => false,
     'error' => "Action [{$_POST['action']}] not be allowed.",

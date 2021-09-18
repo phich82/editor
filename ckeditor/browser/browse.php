@@ -383,6 +383,7 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
                         THEME.toggleFileNameSizeDate();
                         THEME.updateThumbnail(ACTIVE_SETTINGS.thumbsize);
                     }
+                    // Elements for dragging
                     $('.wrap-image img').draggable({
                         helper: 'clone',
                         // disable: true,
@@ -404,6 +405,7 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
                         }
                     });
 
+                    // Elements for dropped from dragging elements
                     $('.sidebar button').droppable({
                         accept: '.wrap-image img',
                         // classes: {
@@ -411,13 +413,9 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
                         //     "ui-droppable-hover": "hv"
                         // },
                         // The dragging element starts dragging
-                        activate(e, ui) {
-                            //
-                        },
+                        activate(e, ui) {},
                         // The dragging element stopped dragging
-                        deacrivate(e, ui) {
-                            //
-                        },
+                        deacrivate(e, ui) {},
                         // The dragging element moved on target element
                         over(e, ui) {
                             // Highlight folder
@@ -432,19 +430,18 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
                         drop(e, ui) {
                             // Turn off highlight folder
                             $(this).css('background', 'transparent');
-
                             var wrapImage = $(ui.helper).closest('.wrap-image');
                             var pathFrom = wrapImage.attr('data-path');
-                            var from = basepath(pathFrom);
-                            var to = $(this).attr('data-path');
+                            var from = trim(basepath(pathFrom), '\\/');
+                            var to   = trim($(this).attr('data-path'), '\\/');
                             var file = getFileName(pathFrom);
-                            console.log({from, to, file})
-
-                            return;
-
-                            // Show contextmenu
+                            // If dropping on same folder, stop it
+                            if (from == to) {
+                                return;
+                            }
+                            // Show contextmenu for copy and move file
                             ContextMenu.show({
-                                selectorContext: '#context-copy-move',
+                                selectorContext: '#context-menu-folder',
                                 mouseEvent: e,
                                 types: {
                                     copymove: [
@@ -463,27 +460,88 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
                                 activations: {},
                                 actions: {
                                     'copymove.copy': function (elementTarget, event) {
-                                        console.log('copy => ', elementTarget);
-                                        $.ajax({
-                                            url: '../uploader/do_file.php',
-                                            method: 'POST',
-                                            data: {
-                                                action: 'copy',
-                                                file,
-                                                from,
-                                                to,
-                                            },
-                                            dataType: 'json',
-                                            success: function (response) {
-
-                                            },
-                                            error: function (jqXHR, textStatus, errorThrown) {
-                                                console.log('error =>', jqXHR, textStatus, errorThrown);
+                                        // Loading waiting modal
+                                        loadModal('./modals/processing.html', function (_wrapClassName, _modal, handler) {
+                                            // Hide all modals, reload images after click on OK button
+                                            handler.ok = function () {
+                                                // Reload image area
+                                                showImages();
                                             }
-                                        });
+                                            // Copy file
+                                            $.ajax({
+                                                url: '../uploader/do_file.php',
+                                                method: 'POST',
+                                                data: {
+                                                    action: 'copy',
+                                                    file,
+                                                    from,
+                                                    to,
+                                                },
+                                                dataType: 'json',
+                                                success: function (response) {
+                                                    console.log('response => ', response)
+                                                    let bodyModal = _modal.find('.message');
+                                                    // Turn off loading spiner
+                                                    bodyModal.find('.loader').hide();
+                                                    // Show message
+                                                    if (response && response.success) {
+                                                        isSaved = true;
+                                                        bodyModal.html('<p class="success m-0">Image already copied successfully.</p>');
+                                                    } else {
+                                                        bodyModal.html('<p class="error m-0">'+response.error+'</p>');
+                                                    }
+                                                    // Show OK button
+                                                    _modal.find('.modal-footer').show();
+                                                },
+                                                error: function (jqXHR, textStatus, errorThrown) {
+                                                    _modal.find('.message').find('.loader').hide();
+                                                    _modal.find('.message').html('<p class="error m-0">'+jqXHR.responseText+'</p>');
+                                                    _modal.find('.modal-footer').show();
+                                                }
+                                            });
+                                        }, 'wrap-modal-processing', 1052);
                                     },
                                     'copymove.move': function (elementTarget, event) {
-                                        console.log('move => ', elementTarget)
+                                        // Loading waiting modal
+                                        loadModal('./modals/processing.html', function (_wrapClassName, _modal, handler) {
+                                            // Hide all modals, reload images after click on OK button
+                                            handler.ok = function () {
+                                                // Reload image area
+                                                showImages();
+                                            }
+                                            // Move file
+                                            $.ajax({
+                                                url: '../uploader/do_file.php',
+                                                method: 'POST',
+                                                data: {
+                                                    action: 'move',
+                                                    file,
+                                                    from,
+                                                    to,
+                                                },
+                                                dataType: 'json',
+                                                success: function (response) {
+                                                    console.log('response => ', response)
+                                                    let bodyModal = _modal.find('.message');
+                                                    // Turn off loading spiner
+                                                    bodyModal.find('.loader').hide();
+                                                    // Show message
+                                                    if (response && response.success) {
+                                                        isSaved = true;
+                                                        bodyModal.html('<p class="success m-0">Image already moved successfully.</p>');
+                                                    } else {
+                                                        bodyModal.html('<p class="error m-0">'+response.error+'</p>');
+                                                    }
+                                                    // Show OK button
+                                                    _modal.find('.modal-footer').show();
+                                                },
+                                                error: function (jqXHR, textStatus, errorThrown) {
+                                                    _modal.find('.message').find('.loader').hide();
+                                                    _modal.find('.message').html('<p class="error m-0">'+jqXHR.responseText+'</p>');
+                                                    _modal.find('.modal-footer').show();
+                                                }
+                                            });
+                                        }, 'wrap-modal-processing', 1052);
                                     },
                                 }
                             }, 'copymove', this);
@@ -1143,56 +1201,53 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
 
             // Save button
             modal.find('.save').on('click', function (e) {
-                var processingModal;
-                var isSaved = false;
-                loadModal('./modals/processing.html', function (_wrapClassName, _modal) {
-                    processingModal = _modal;
+                // Load waiting modal
+                loadModal('./modals/processing.html', function (_wrapClassName, processingModal, handler) {
+                    var isSaved = false;
                     // Hide all modals, reload images after click on OK button
-                    processingModal.on('click', '.ok', function () {
-                        // Hide all modals
-                        processingModal.modal('hide');
+                    handler.ok = function () {
                         isSaved && modal.modal('hide');
                         // Reload image area
                         let selectedCurrentFolder = $('.folder-selected').attr('data-path');
                         showImages(selectedCurrentFolder);
+                    }
+
+                    let blob = base64ToBlob(caman.toBase64());
+                    let folderSelected = basepath(pathImageSelected);
+                    let filename = getFileName(pathImageSelected);
+                    let dataForm = new FormData();
+                    dataForm.append('file', blob, filename);
+                    dataForm.append('folder', folderSelected);
+
+                    $.ajax({
+                        url: '../uploader/do_upload.php',
+                        method: 'POST',
+                        data: dataForm,
+                        dataType: 'json',
+                        contentType: false,
+                        cache: false,
+                        processData: false,
+                        success: function(response, status, jqXHR) {
+                            let bodyModal = processingModal.find('.message');
+                            // Turn off loading spiner
+                            bodyModal.find('.loader').hide();
+                            // Show message
+                            if (response && response.success) {
+                                isSaved = true;
+                                bodyModal.html('<p class="success m-0">Image already saved successfully.</p>');
+                            } else {
+                                bodyModal.html('<p class="error m-0">'+response.error+'</p>');
+                            }
+                            // Show OK button
+                            processingModal.find('.modal-footer').show();
+                        },
+                        error: function (jqXHR, textStatus, errorThrown) {
+                            processingModal.find('.message').find('.loader').hide();
+                            processingModal.find('.message').html('<p class="error m-0">'+jqXHR.responseText+'</p>');
+                            processingModal.find('.modal-footer').show();
+                        }
                     });
                 }, 'wrap-modal-processing', 1052);
-
-                let blob = base64ToBlob(caman.toBase64());
-                let folderSelected = basepath(pathImageSelected);
-                let filename = getFileName(pathImageSelected);
-                let dataForm = new FormData();
-                dataForm.append('file', blob, filename);
-                dataForm.append('folder', folderSelected);
-
-                $.ajax({
-                    url: '../uploader/do_upload.php',
-                    method: 'POST',
-                    data: dataForm,
-                    dataType: 'json',
-                    contentType: false,
-                    cache: false,
-                    processData: false,
-                    success: function(response, status, jqXHR) {
-                        let bodyModal = processingModal.find('.message');
-                        // Turn off loading spiner
-                        bodyModal.find('.loader').hide();
-                        // Show message
-                        if (response && response.success) {
-                            isSaved = true;
-                            bodyModal.html('<p class="success m-0">Image already saved successfully.</p>');
-                        } else {
-                            bodyModal.html('<p class="error m-0">'+response.error+'</p>');
-                        }
-                        // Show OK button
-                        processingModal.find('.modal-footer').show();
-                    },
-                    error: function (jqXHR, textStatus, errorThrown) {
-                        processingModal.find('.message').find('.loader').hide();
-                        processingModal.find('.message').html('<p class="error m-0">'+jqXHR.responseText+'</p>');
-                        processingModal.find('.modal-footer').show();
-                    }
-                });
             });
 
             // Toogle crop box when selecting it

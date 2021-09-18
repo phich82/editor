@@ -117,20 +117,42 @@ function load(pathFile, callback, classNameWrap, zIndex) {
 function loadModal(pathFile, callback, classNameWrap, zIndex) {
     load(pathFile, function (_classNameWrap) {
         var modalContainer = $('.'+_classNameWrap).find('.modal-app');
+        var handler = {
+            ok: function () {},
+            close: function () {},
+            hide: function () {},
+        };
         // Open modal
         modalContainer.modal('toggle');
         // Click on CLOSE button
         modalContainer.on('click', '.close', function (e) {
             modalContainer.modal('hide');
+            // Execute after closing modal
+            if (typeof handler.close === 'function') {
+                handler.close();
+            }
         });
         // Remove container of modal from DOM when close modal
         modalContainer.on('hide.bs.modal', function (e) {
             $(`.${_classNameWrap}`).remove();
+            // Execute after modal hidden
+            if (typeof handler.hide === 'function') {
+                handler.hide();
+            }
         });
         // Change zIndex for backdrop
         modalContainer.closest('body').find('.modal-backdrop').css('zIndex', zIndex - 1);
+        // Click on OK button
+        modalContainer.on('click', '.ok', function () {
+            // Hide all modals
+            modalContainer.modal('hide');
+            // Execute some thing after click on OK button
+            if (typeof handler.ok === 'function') {
+                handler.ok();
+            }
+        });
         // Callback
-        callback(_classNameWrap, modalContainer);
+        callback(_classNameWrap, modalContainer, handler);
     }, classNameWrap, zIndex);
 }
 
@@ -237,4 +259,77 @@ function enableButton(identity) {
         identity = `input[${identity.attr}="${identity.value}"]`;
     }
     $(identity).attr('disabled', false);
+}
+
+function lTrim(str, charList) {
+    charList = !charList ? ' \\s\u00A0' : (charList + '');
+    charList = charList.replace(/([[\]().?/*{}+$^:])/g, '$1');
+    const regex = new RegExp('^[' + charList + ']+', 'g');
+    return (str + '').replace(regex, '');
+}
+
+function rTrim(str, charList) {
+    charList = !charList ? ' \\s\u00A0' : (charList + '');
+    charList = charList.replace(/([[\]().?/*{}+$^:])/g, '\\$1');
+    const regex = new RegExp('[' + charList + ']+$', 'g');
+    return (str + '').replace(regex, '');
+}
+
+function trim(str, charList) {
+    const whitespaceList = [
+        ' ',
+        '\n',
+        '\r',
+        '\t',
+        '\f',
+        '\x0b',
+        '\xa0',
+        '\u2000',
+        '\u2001',
+        '\u2002',
+        '\u2003',
+        '\u2004',
+        '\u2005',
+        '\u2006',
+        '\u2007',
+        '\u2008',
+        '\u2009',
+        '\u200a',
+        '\u200b',
+        '\u2028',
+        '\u2029',
+        '\u3000'
+    ];
+
+    let finalString = '';
+    let whitespace = whitespaceList.join('');
+    let l = 0;
+    let i = 0;
+
+    str += '';
+    if (charList) {
+        whitespace = (charList + '').replace(/([[\]().?/*{}+$^:])/g, '$1');
+    }
+
+    l = str.length;
+    for (i = 0; i < l; i += 1) {
+        if (whitespace.indexOf(str.charAt(i)) === -1) {
+            str = str.substring(i);
+            break;
+        }
+    }
+
+    l = str.length;
+    for (i = l - 1; i >= 0; i -= 1) {
+        if (whitespace.indexOf(str.charAt(i)) === -1) {
+            str = str.substring(0, i + 1);
+            break;
+        }
+    }
+
+    if (whitespace.indexOf(str.charAt(0)) === -1) {
+        finalString = str;
+    }
+
+    return finalString;
 }

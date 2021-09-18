@@ -1,6 +1,7 @@
 <?php
 
 define('HTTPS', isset($_SERVER['HTTPS']) && filter_var($_SERVER['HTTPS'], FILTER_VALIDATE_BOOLEAN));
+define('STORAGE_PATH', './storage');
 
 function dd($value) {
     echo '<pre>'.json_encode($value, JSON_PRETTY_PRINT).'</pre>';
@@ -87,4 +88,18 @@ function getExtensionFromUrl($url) {
         return array_pop($extension);
     }
     return false;
+}
+
+function getUniqueString() {
+    return time() . rand();
+}
+
+function move_file($file, $to) {
+    $info = pathinfo($file);
+    $to   = "$to/{$info['basename']}";
+    return rename($file, $to);
+    // if (copy($file, $to)) {
+    //     return unlink($file);
+    // }
+    // return false;
 }
