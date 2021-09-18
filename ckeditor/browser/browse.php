@@ -360,7 +360,7 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
                             out +=          `<div class="fmodified date">${info.modified}</div>`;
                             out +=          `<div class="fsize filesize">${info.formated_size}</div>`;
                         } else {
-                            out +=          `<div class="fname filename"><i class="bi bi-image-fill"></i> ${info.basename}</div>`;
+                            out +=          `<div class="fname image"><i class="bi bi-image-fill"></i> <span>${info.basename}</span></div>`;
                         }
                         out +=      '</div>';
                         out += '</div>';
@@ -384,17 +384,24 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
                         THEME.updateThumbnail(ACTIVE_SETTINGS.thumbsize);
                     }
                     // Elements for dragging
-                    $('.wrap-image img').draggable({
+                    $('.wrap-image .image').draggable({
                         helper: 'clone',
                         // disable: true,
                         start(e, ui) {
                             let elem = $(ui.helper);
+                            // Remove filename (only keep image icon)
+                            elem.find('span').remove();
                             elem.css('marginTop', $(e.currentTarget).height() / 2);
                             elem.css('marginLeft', $(e.currentTarget).width() * 2 / 3);
-                            elem.css('border', '5px solid #ffffff')
-                            elem.css('transform', 'rotate(-20deg)')
-                            elem.attr('width', '40px');
-                            elem.attr('height', '40px');
+                            elem.css('transform', 'rotate(-20deg)');
+                            if (elem.prop('tagName').toLowerCase() === 'img') {
+                                elem.css('border', '5px solid #ffffff');
+                                elem.attr('width', '40px');
+                                elem.attr('height', '40px');
+                            } else {
+                                elem.find('i').css('border', '5px solid #ffffff');
+                                elem.find('i').css('fontSize', '20px');
+                            }
                         },
                         drag(e, ui) {
                             ui.offset.left = e.pageX || e.clientX + (document.documentElement.scrollLeft || document.body.scrollLeft || 0);
@@ -407,7 +414,7 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
 
                     // Elements for dropped from dragging elements
                     $('.sidebar button').droppable({
-                        accept: '.wrap-image img',
+                        accept: '.wrap-image .image',
                         // classes: {
                         //     "ui-droppable-active": "ac",
                         //     "ui-droppable-hover": "hv"
@@ -471,15 +478,9 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
                                             $.ajax({
                                                 url: '../uploader/do_file.php',
                                                 method: 'POST',
-                                                data: {
-                                                    action: 'copy',
-                                                    file,
-                                                    from,
-                                                    to,
-                                                },
+                                                data: { action: 'copy', file, from, to },
                                                 dataType: 'json',
                                                 success: function (response) {
-                                                    console.log('response => ', response)
                                                     let bodyModal = _modal.find('.message');
                                                     // Turn off loading spiner
                                                     bodyModal.find('.loader').hide();
@@ -513,15 +514,9 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
                                             $.ajax({
                                                 url: '../uploader/do_file.php',
                                                 method: 'POST',
-                                                data: {
-                                                    action: 'move',
-                                                    file,
-                                                    from,
-                                                    to,
-                                                },
+                                                data: { action: 'move', file, from, to },
                                                 dataType: 'json',
                                                 success: function (response) {
-                                                    console.log('response => ', response)
                                                     let bodyModal = _modal.find('.message');
                                                     // Turn off loading spiner
                                                     bodyModal.find('.loader').hide();
@@ -1822,7 +1817,7 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
                     width: '10px',
                     render(data, type, row, meta) {
                         return `
-                            <i class="bi bi-image-fill" style="font-size:25px;"></i>
+                            <i class="bi bi-image-fill image" style="font-size:25px;"></i>
                         `;
                     }
                 },
@@ -1833,7 +1828,7 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
                     visible: true,
                     render(data, type, row, meta) {
                         return `
-                            <div class="target-highlight">${row.filename}</div>
+                            <div class="target-highlight image">${row.filename}</div>
                         `;
                     }
                 },
