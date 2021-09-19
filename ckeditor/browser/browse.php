@@ -452,12 +452,12 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
         });
     }
 
-    function showImages(path) {
+    function showImages(path, keyword) {
         path = path || $('.folder-selected').attr('data-path');
         $.ajax({
             url: '../uploader/do_file.php',
             method: 'POST',
-            data: { path, action: 'read' },
+            data: { path, keyword, action: 'read' },
             dataType: 'json',
             success: function (response) {
                 if (response && response.success) {
@@ -2203,11 +2203,6 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
             });
         });
 
-        // Automatically loading images when on reload page
-        if ($('.sidebar').find('.folder-selected').hasClass('folder-selected')) {
-            $('.sidebar').find('.folder-selected .folder').click();
-        }
-
         // Change sortby and orderby in settings modal when sorting header of datatable changed
         $(document).on('order.dt', '#datatable', function () {
             // Only handling when it is list type
@@ -2230,6 +2225,17 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
                 $(`input[data-setting="orderby"][value="${ACTIVE_SETTINGS.orderby}"]`).prop('checked', true);
             }
         });
+
+        // Search images
+        $('#search').on('keyup', debounce(function (e) {
+            console.log('search => ', $(this).val(), e)
+            showImages(null,  $(this).val())
+        }));
+
+        // Automatically loading images when on reload page
+        if ($('.sidebar').find('.folder-selected').hasClass('folder-selected')) {
+            $('.sidebar').find('.folder-selected .folder').click();
+        }
 
         // window.opener.CKEDITOR.instances.editor.openDialog('mypluginDialog');
         // CKEDITOR.instances.editor.commands.insertMyPlugin.exec();

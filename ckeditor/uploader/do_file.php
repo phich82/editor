@@ -24,6 +24,7 @@ if ($action == 'read' || $action == 'get') {
 
     $pathRequest = trim($_POST['path'], '\/\\');
     $path = './storage'.DIRECTORY_SEPARATOR.$pathRequest;
+    $keyword = isset($_POST['keyword']) ? $_POST['keyword'] : '';
 
     if (!is_dir($path) && !file_exists($path)) {
         return responseJson([
@@ -51,8 +52,9 @@ if ($action == 'read' || $action == 'get') {
         '.sonarlint',
     ];
     // Only get files in folder (not included files in subfolders)
-    $files = array_reduce($files, function ($carry, $file) use ($filesExcluded, $path, $pathRequest) {
-        if (!in_array($file, $filesExcluded) && is_file("{$path}/{$file}")) {
+    $files = array_reduce($files, function ($carry, $file) use ($filesExcluded, $path, $pathRequest, $keyword) {
+        $keywordExists = $keyword ? stripos($file, $keyword) !== false : true;
+        if (!in_array($file, $filesExcluded) && is_file("{$path}/{$file}") && $keywordExists) {
             $stat = stat("{$path}/{$file}");
             $info = pathinfo("{$path}/{$file}");
             $mime = finfo_file(finfo_open(FILEINFO_MIME_TYPE), "{$path}/{$file}");
