@@ -285,9 +285,173 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
     <div id="context-menu-folder" class="context-menu"></div>
     <!-- /Context Menu -->
 
-    <div id="context-copy-move" class="context-menu"></div>
-
 <script>
+    function showCopyMoveContextMenu(from, to, file, mouseEvent, element) {
+        // Show contextmenu for copy and move file
+        ContextMenu.show({
+            selectorContext: '#context-menu-folder',
+            mouseEvent: mouseEvent,
+            types: {
+                copymove: [
+                    {
+                        id: 'copy',
+                        icon: '<i class="bi bi-files"></i>',
+                        label: 'Copy Here'
+                    },
+                    {
+                        id: 'move',
+                        icon: '<i class="bi bi-box-arrow-right"></i>',
+                        label: 'Move Here'
+                    },
+                ]
+            },
+            activations: {},
+            actions: {
+                'copymove.copy': function (elementTarget, event) {
+                    // Loading waiting modal
+                    loadModal('./modals/processing.html', function (wrapClassName, modal, handler) {
+                        // Hide all modals, reload images after click on OK button
+                        handler.ok = function () {
+                            // Reload image area
+                            showImages();
+                        }
+                        // Copy file
+                        $.ajax({
+                            url: '../uploader/do_file.php',
+                            method: 'POST',
+                            data: { action: 'copy', file, from, to },
+                            dataType: 'json',
+                            success: function (response) {
+                                let bodyModal = modal.find('.message');
+                                // Turn off loading spiner
+                                bodyModal.find('.loader').hide();
+                                // Show message
+                                if (response && response.success) {
+                                    bodyModal.html('<p class="success m-0">Image already copied successfully.</p>');
+                                } else {
+                                    bodyModal.html('<p class="error m-0">'+response.error+'</p>');
+                                }
+                                // Show OK button
+                                modal.find('.modal-footer').show();
+                            },
+                            error: function (jqXHR, textStatus, errorThrown) {
+                                modal.find('.message').find('.loader').hide();
+                                modal.find('.message').html('<p class="error m-0">'+jqXHR.responseText+'</p>');
+                                modal.find('.modal-footer').show();
+                            }
+                        });
+                    }, 'wrap-modal-processing', 1052);
+                },
+                'copymove.move': function (elementTarget, event) {
+                    // Loading waiting modal
+                    loadModal('./modals/processing.html', function (wrapClassName, modal, handler) {
+                        // Hide all modals, reload images after click on OK button
+                        handler.ok = function () {
+                            // Reload image area
+                            showImages();
+                        }
+                        // Move file
+                        $.ajax({
+                            url: '../uploader/do_file.php',
+                            method: 'POST',
+                            data: { action: 'move', file, from, to },
+                            dataType: 'json',
+                            success: function (response) {
+                                let bodyModal = modal.find('.message');
+                                // Turn off loading spiner
+                                bodyModal.find('.loader').hide();
+                                // Show message
+                                if (response && response.success) {
+                                    bodyModal.html('<p class="success m-0">Image already moved successfully.</p>');
+                                } else {
+                                    bodyModal.html('<p class="error m-0">'+response.error+'</p>');
+                                }
+                                // Show OK button
+                                modal.find('.modal-footer').show();
+                            },
+                            error: function (jqXHR, textStatus, errorThrown) {
+                                modal.find('.message').find('.loader').hide();
+                                modal.find('.message').html('<p class="error m-0">'+jqXHR.responseText+'</p>');
+                                modal.find('.modal-footer').show();
+                            }
+                        });
+                    }, 'wrap-modal-processing', 1052);
+                },
+            }
+        }, 'copymove', element);
+    }
+
+    function bindDragDropImages() {
+        // Elements for dragging
+        $('.wrap-image .image').draggable({
+            helper: 'clone',
+            // disable: true,
+            start(e, ui) {
+                let elem = $(ui.helper);
+                elem.css('marginTop', $(e.currentTarget).height() / 2);
+                elem.css('marginLeft', $(e.currentTarget).width() / 2);
+                elem.css('transform', 'rotate(-20deg)');
+                switch (elem.prop('tagName').toLowerCase()) {
+                    case 'img':
+                        elem.css('border', '5px solid #ffffff');
+                        elem.attr('width', '40px');
+                        elem.attr('height', '40px');
+                        break;
+                    default:
+                        elem.removeClass('target-highlight fullwidth image-selected');
+                        elem.html('<i class="bi bi-image-fill" style="font-size:20px; border:5px solid #ffffff"></i>');
+                        break;
+                }
+            },
+            drag(e, ui) {
+                ui.offset.left = e.pageX || e.clientX + (document.documentElement.scrollLeft || document.body.scrollLeft || 0);
+                ui.offset.top  = e.pageY || e.clientY + (document.documentElement.scrollTop  || document.body.scrollTop  || 0);
+            },
+            stop(e, ui) {
+                console.log('stop => ', ui)
+            }
+        });
+
+        // Elements for dropped from dragging elements
+        $('.sidebar button').droppable({
+            accept: '.wrap-image .image',
+            // classes: {
+            //     "ui-droppable-active": "ac",
+            //     "ui-droppable-hover": "hv"
+            // },
+            // The dragging element starts dragging
+            activate(e, ui) {},
+            // The dragging element stopped dragging
+            deacrivate(e, ui) {},
+            // The dragging element moved on target element
+            over(e, ui) {
+                // Highlight folder
+                $(this).css('background', '#ffffff');
+            },
+            // The dragging element moved out of target element
+            out(e, ui) {
+                // Turn off highlight folder
+                $(this).css('background', 'transparent');
+            },
+            // Element moved on target element and dropped
+            drop(e, ui) {
+                // Turn off highlight folder
+                $(this).css('background', 'transparent');
+                var wrapImage = $(ui.helper).closest('.wrap-image');
+                var pathFrom = wrapImage.attr('data-path');
+                var from = trim(basepath(pathFrom), '\\/');
+                var to   = trim($(this).attr('data-path'), '\\/');
+                var file = getFileName(pathFrom);
+                // If dropping on same folder, stop it
+                if (from == to) {
+                    return;
+                }
+                // Show contextmenu
+                showCopyMoveContextMenu(from, to, file, e, this);
+            }
+        });
+    }
+
     function showImages(path) {
         path = path || $('.folder-selected').attr('data-path');
         $.ajax({
@@ -326,6 +490,8 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
                         }).init('#datatable');
                         // Restart context menu for binding images to it
                         bindContextMenu();
+                        // Drag & Drop images
+                        bindDragDropImages();
                         return;
                     }
 
@@ -383,165 +549,8 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
                         THEME.toggleFileNameSizeDate();
                         THEME.updateThumbnail(ACTIVE_SETTINGS.thumbsize);
                     }
-                    // Elements for dragging
-                    $('.wrap-image .image').draggable({
-                        helper: 'clone',
-                        // disable: true,
-                        start(e, ui) {
-                            let elem = $(ui.helper);
-                            // Remove filename (only keep image icon)
-                            elem.find('span').remove();
-                            elem.css('marginTop', $(e.currentTarget).height() / 2);
-                            elem.css('marginLeft', $(e.currentTarget).width() * 2 / 3);
-                            elem.css('transform', 'rotate(-20deg)');
-                            if (elem.prop('tagName').toLowerCase() === 'img') {
-                                elem.css('border', '5px solid #ffffff');
-                                elem.attr('width', '40px');
-                                elem.attr('height', '40px');
-                            } else {
-                                elem.find('i').css('border', '5px solid #ffffff');
-                                elem.find('i').css('fontSize', '20px');
-                            }
-                        },
-                        drag(e, ui) {
-                            ui.offset.left = e.pageX || e.clientX + (document.documentElement.scrollLeft || document.body.scrollLeft || 0);
-                            ui.offset.top  = e.pageY || e.clientY + (document.documentElement.scrollTop  || document.body.scrollTop  || 0);
-                        },
-                        stop(e, ui) {
-                            console.log('stop => ', ui)
-                        }
-                    });
-
-                    // Elements for dropped from dragging elements
-                    $('.sidebar button').droppable({
-                        accept: '.wrap-image .image',
-                        // classes: {
-                        //     "ui-droppable-active": "ac",
-                        //     "ui-droppable-hover": "hv"
-                        // },
-                        // The dragging element starts dragging
-                        activate(e, ui) {},
-                        // The dragging element stopped dragging
-                        deacrivate(e, ui) {},
-                        // The dragging element moved on target element
-                        over(e, ui) {
-                            // Highlight folder
-                            $(this).css('background', '#ffffff');
-                        },
-                        // The dragging element moved out of target element
-                        out(e, ui) {
-                            // Turn off highlight folder
-                            $(this).css('background', 'transparent');
-                        },
-                        // Element moved on target element and dropped
-                        drop(e, ui) {
-                            // Turn off highlight folder
-                            $(this).css('background', 'transparent');
-                            var wrapImage = $(ui.helper).closest('.wrap-image');
-                            var pathFrom = wrapImage.attr('data-path');
-                            var from = trim(basepath(pathFrom), '\\/');
-                            var to   = trim($(this).attr('data-path'), '\\/');
-                            var file = getFileName(pathFrom);
-                            // If dropping on same folder, stop it
-                            if (from == to) {
-                                return;
-                            }
-                            // Show contextmenu for copy and move file
-                            ContextMenu.show({
-                                selectorContext: '#context-menu-folder',
-                                mouseEvent: e,
-                                types: {
-                                    copymove: [
-                                        {
-                                            id: 'copy',
-                                            icon: '<i class="bi bi-files"></i>',
-                                            label: 'Copy Here'
-                                        },
-                                        {
-                                            id: 'move',
-                                            icon: '<i class="bi bi-box-arrow-right"></i>',
-                                            label: 'Move Here'
-                                        },
-                                    ]
-                                },
-                                activations: {},
-                                actions: {
-                                    'copymove.copy': function (elementTarget, event) {
-                                        // Loading waiting modal
-                                        loadModal('./modals/processing.html', function (_wrapClassName, _modal, handler) {
-                                            // Hide all modals, reload images after click on OK button
-                                            handler.ok = function () {
-                                                // Reload image area
-                                                showImages();
-                                            }
-                                            // Copy file
-                                            $.ajax({
-                                                url: '../uploader/do_file.php',
-                                                method: 'POST',
-                                                data: { action: 'copy', file, from, to },
-                                                dataType: 'json',
-                                                success: function (response) {
-                                                    let bodyModal = _modal.find('.message');
-                                                    // Turn off loading spiner
-                                                    bodyModal.find('.loader').hide();
-                                                    // Show message
-                                                    if (response && response.success) {
-                                                        isSaved = true;
-                                                        bodyModal.html('<p class="success m-0">Image already copied successfully.</p>');
-                                                    } else {
-                                                        bodyModal.html('<p class="error m-0">'+response.error+'</p>');
-                                                    }
-                                                    // Show OK button
-                                                    _modal.find('.modal-footer').show();
-                                                },
-                                                error: function (jqXHR, textStatus, errorThrown) {
-                                                    _modal.find('.message').find('.loader').hide();
-                                                    _modal.find('.message').html('<p class="error m-0">'+jqXHR.responseText+'</p>');
-                                                    _modal.find('.modal-footer').show();
-                                                }
-                                            });
-                                        }, 'wrap-modal-processing', 1052);
-                                    },
-                                    'copymove.move': function (elementTarget, event) {
-                                        // Loading waiting modal
-                                        loadModal('./modals/processing.html', function (_wrapClassName, _modal, handler) {
-                                            // Hide all modals, reload images after click on OK button
-                                            handler.ok = function () {
-                                                // Reload image area
-                                                showImages();
-                                            }
-                                            // Move file
-                                            $.ajax({
-                                                url: '../uploader/do_file.php',
-                                                method: 'POST',
-                                                data: { action: 'move', file, from, to },
-                                                dataType: 'json',
-                                                success: function (response) {
-                                                    let bodyModal = _modal.find('.message');
-                                                    // Turn off loading spiner
-                                                    bodyModal.find('.loader').hide();
-                                                    // Show message
-                                                    if (response && response.success) {
-                                                        isSaved = true;
-                                                        bodyModal.html('<p class="success m-0">Image already moved successfully.</p>');
-                                                    } else {
-                                                        bodyModal.html('<p class="error m-0">'+response.error+'</p>');
-                                                    }
-                                                    // Show OK button
-                                                    _modal.find('.modal-footer').show();
-                                                },
-                                                error: function (jqXHR, textStatus, errorThrown) {
-                                                    _modal.find('.message').find('.loader').hide();
-                                                    _modal.find('.message').html('<p class="error m-0">'+jqXHR.responseText+'</p>');
-                                                    _modal.find('.modal-footer').show();
-                                                }
-                                            });
-                                        }, 'wrap-modal-processing', 1052);
-                                    },
-                                }
-                            }, 'copymove', this);
-                        }
-                    });
+                    // Drag & Drop images
+                    bindDragDropImages();
                 }
             },
             error: function (jqXHR, textStatus, errorThrown) {
@@ -1817,7 +1826,7 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
                     width: '10px',
                     render(data, type, row, meta) {
                         return `
-                            <i class="bi bi-image-fill image" style="font-size:25px;"></i>
+                            <div class="image"><i class="bi bi-image-fill" style="font-size:25px;"></i></div>
                         `;
                     }
                 },
@@ -1828,7 +1837,7 @@ function subfolders($directories, $collapseId = '', $levelPrev = 0) {
                     visible: true,
                     render(data, type, row, meta) {
                         return `
-                            <div class="target-highlight image">${row.filename}</div>
+                            <label class="target-highlight image fullwidth">${row.filename}</label>
                         `;
                     }
                 },

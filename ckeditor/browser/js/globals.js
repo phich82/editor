@@ -333,3 +333,17 @@ function trim(str, charList) {
 
     return finalString;
 }
+
+function mouseX(e) {
+    if (e.pageY) {
+        return e.pageY || e.clientY + (document.documentElement.scrollTop || document.body.scrollTop || 0);
+    }
+    return null;
+}
+
+function mouseY(e) {
+    if (e.pageY || e.clientY) {
+        return e.pageY || e.clientY + (document.documentElement.scrollTop || document.body.scrollTop || 0);
+    }
+    return null;
+}

@@ -161,8 +161,11 @@ var ContextMenu = {
                         ul.appendChild(li);
                     });
 
+                    // Reset context menu
+                    contextmenu.style.top  = null;
+                    contextmenu.style.left = null;
+                    contextmenu.innerHTML  = '';
                     // Add menu items to context menu
-                    contextmenu.innerHTML = '';
                     contextmenu.appendChild(ul);
                     // Show context menu
                     contextmenu.style.top =  mouseY(window.event) + 'px';
@@ -301,6 +304,7 @@ var ContextMenu = {
             }, configs);
         }
         var self = this;
+        var menuState = 0;
         var contextmenu = document.querySelector(configs.selectorContext);
         var contextMenuItemsClassName = 'context-menu__items';
         var contextMenuItemClassName  = 'context-menu__item';
@@ -370,8 +374,11 @@ var ContextMenu = {
             // Turn context menu off when press ESC key
             keyupListener();
 
+            // Reset contextmenu
+            contextmenu.style.top  = null;
+            contextmenu.style.left = null;
+            contextmenu.innerHTML  = '';
             // Add menu items to context menu
-            contextmenu.innerHTML = '';
             contextmenu.appendChild(ul);
             // Show context menu
             contextmenu.style.top  = (element.offsetTop  + element.offsetHeight) + 'px';// self.mouseY(configs.mouseEvent || window.event) + 'px';
@@ -383,14 +390,22 @@ var ContextMenu = {
          * Hide contextmenu
          */
         function toggleMenuOff() {
-            contextmenu.classList.remove(contextMenuActiveClass);
+            if (menuState !== 0) {
+                menuState = 0;
+                // Remove active class for closing contextmenu
+                contextmenu.classList.remove(contextMenuActiveClass);
+            }
         }
 
         /**
          * Show contextmenu
          */
         function toggleMenuOn() {
-            contextmenu.classList.add(contextMenuActiveClass);
+            if (menuState !== 1) {
+                menuState = 1;
+                // Add active class for showing contextmenu
+                contextmenu.classList.add(contextMenuActiveClass);
+            }
         }
 
         /**
